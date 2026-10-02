@@ -42,7 +42,7 @@ export default function EmailComposer({ jobId, email, profile, onChange }: Props
           } />
       </div>
       <div className="esource">
-        {'Found via company careers page + email pattern check. ' + profile.name + "'s resume will be attached."}
+        {'Found via web search. ' + profile.name + "'s resume will be attached."}
       </div>
     </section>
   );

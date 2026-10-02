@@ -1,4 +1,4 @@
-import type { Contact, Email, Job, JobData, Profile, Screen } from '../types';
+import type { Branch, Contact, Email, Job, JobData, Profile, Screen } from '../types';
 import { jobMeta } from '../lib/format';
 import NonePanel from './NonePanel';
 import CollectingPanel from './CollectingPanel';
@@ -11,11 +11,12 @@ interface Props {
   profile: Profile;
   go: (s: Screen) => void;
   onCollect: () => void;
+  onRetry: (b: Branch) => void;
   onContact: (contactId: string, patch: Partial<Contact>) => void;
   onEmail: (patch: Partial<Email>) => void;
 }
 
-export default function JobDetailScreen({ job, d, prevScreen, profile, go, onCollect, onContact, onEmail }: Props) {
+export default function JobDetailScreen({ job, d, prevScreen, profile, go, onCollect, onRetry, onContact, onEmail }: Props) {
   return (
     <>
       <button className="btn btn-back" type="button" onClick={() => go(prevScreen)}>
@@ -40,9 +41,9 @@ export default function JobDetailScreen({ job, d, prevScreen, profile, go, onCol
         </div>
       </div>
       {!d ? <NonePanel job={job} onCollect={onCollect} />
-        : d.status === 'collecting' ? <CollectingPanel job={job} step={d.step} contacts={d.contacts} />
-        : <DonePanel job={job} contacts={d.contacts} email={d.email} profile={profile}
-            onContact={onContact} onEmail={onEmail} />}
+        : d.status === 'collecting' ? <CollectingPanel log={d.log} contacts={d.contacts} />
+        : <DonePanel job={job} d={d} profile={profile}
+            onRetry={onRetry} onContact={onContact} onEmail={onEmail} />}
     </>
   );
 }

@@ -1,48 +1,119 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import type { Job, JobData, Profile, Speed } from '../types';
-import { SPEEDS, logLines } from '../data/constants';
-import { buildDone } from '../lib/drafting';
+import type { Branch, Contact, Job, JobData, LogEntry, Profile } from '../types';
+import type { ApiConnection } from '../lib/api';
+import { ApiError, draftEmail, findContact, getConnections } from '../lib/api';
+import { draftNote } from '../lib/drafting';
 
 type SetData = Dispatch<SetStateAction<Record<string, JobData>>>;
-type Timer = ReturnType<typeof setTimeout>;
+type State = LogEntry['state'];
+type Result = { email: Extract<JobData, { status: 'done' }>['email']; error: string | null };
+interface Log { add: (text: string, state?: State) => number; set: (n: number, state: State, text?: string) => void }
 
-export function useCollector(setData: SetData, speed: Speed) {
-  const intervals = useRef<Record<string, Timer>>({});
-  const finishers = useRef<Record<string, Timer>>({});
+const NO_LOG: Log = { add: () => 0, set: () => {} };
+const errMsg = (e: unknown) => (e instanceof ApiError ? e.message : 'Something went wrong');
 
-  useEffect(() => () => {
-    Object.values(intervals.current).forEach(clearInterval);
-    Object.values(finishers.current).forEach(clearTimeout);
-  }, []);
+const toContact = (c: ApiConnection, job: Job, p: Profile): Contact => ({
+  id: c.id, name: c.name, title: c.headline ?? '', degree: 'Saved',
+  reason: c.notes ?? c.location ?? '', profileUrl: c.sourceProfileUrl,
+  status: 'Not sent', text: draftNote({ name: c.name }, job, p),
+});
 
-  return useCallback((job: Job, profile: Profile) => {
-    const lines = logLines(job.company);
-    const done = buildDone(job, profile);
-    clearInterval(intervals.current[job.id]);
-    clearTimeout(finishers.current[job.id]);
-    setData((prev) => ({ ...prev, [job.id]: { status: 'collecting', step: 0, contacts: [] } }));
+export function useCollector(setData: SetData) {
+  // Per-job run id: bumped on every collect(). Async results carry the id they
+  // started with and are dropped if the job has since been re-run.
+  const runs = useRef<Record<string, number>>({});
+  const seq = useRef(0);
 
-    const tick = SPEEDS[speed] || SPEEDS.Normal;
-    let step = 0;
-    let aborted = false;
-    intervals.current[job.id] = setInterval(() => {
-      if (aborted) { clearInterval(intervals.current[job.id]); return; }
-      step++;
-      const atEnd = step >= lines.length;
-      if (atEnd) clearInterval(intervals.current[job.id]);
-      setData((prev) => {
-        const d = prev[job.id];
-        if (!d || d.status !== 'collecting') { aborted = true; return prev; }
-        const contacts = atEnd ? d.contacts
-          : step < 3 ? [] : done.contacts.slice(0, Math.min(5, (step - 2) * 2));
-        return { ...prev, [job.id]: { ...d, step, contacts } };
-      });
-      if (atEnd) {
-        finishers.current[job.id] = setTimeout(() => {
-          setData((prev) => ({ ...prev, [job.id]: done }));
-        }, 500);
+  const run = useCallback((job: Job, profile: Profile) => {
+    const id = job.id;
+    // Functional update, applied only if `r` is still the job's current run.
+    const patch = (r: number, fn: (d: JobData) => JobData) => {
+      if (runs.current[id] !== r) return;
+      setData((prev) => (prev[id] ? { ...prev, [id]: fn(prev[id]) } : prev));
+    };
+    const mkLog = (r: number): Log => ({
+      add(text, state = 'active') {
+        const n = ++seq.current;
+        patch(r, (d) => (d.status === 'collecting' ? { ...d, log: [...d.log, { id: n, text, state }] } : d));
+        return n;
+      },
+      set(n, state, text) {
+        patch(r, (d) => (d.status === 'collecting'
+          ? { ...d, log: d.log.map((l) => (l.id === n ? { ...l, state, text: text ?? l.text } : l)) } : d));
+      },
+    });
+
+    const loadContacts = async (r: number, log: Log): Promise<string | null> => {
+      const n = log.add('Looking up saved connections at ' + job.company);
+      try {
+        const { data } = await getConnections(job.company);
+        const contacts = data.map((c) => toContact(c, job, profile));
+        log.set(n, 'done');
+        log.add('Found ' + contacts.length + ' saved connection' + (contacts.length === 1 ? '' : 's'), 'done');
+        patch(r, (d) => ({ ...d, contacts }));
+        return null;
+      } catch (e) {
+        log.set(n, 'error', 'Could not load saved connections: ' + errMsg(e));
+        return errMsg(e);
       }
-    }, tick);
-  }, [setData, speed]);
+    };
+
+    const loadEmail = async (log: Log): Promise<Result> => {
+      let n = log.add('Searching the web for a recruiting email');
+      const info = { company: job.company, role: job.role, location: job.location, term: job.term };
+      try {
+        const found = await findContact(info);
+        if (!found.email) {
+          log.set(n, 'done');
+          log.add('No public recruiting email found', 'done');
+          return { email: null, error: null };
+        }
+        const to = found.email, label = found.label || 'Recruiting team';
+        log.set(n, 'done');
+        log.add('Found ' + label, 'done');
+        n = log.add('Drafting email');
+        const draft = await draftEmail({ ...info, email: to, label, ...profile });
+        log.set(n, 'done');
+        return {
+          email: { to, toName: label, confidence: 'found via web search', subject: draft.subject, text: draft.body },
+          error: null,
+        };
+      } catch (e) {
+        log.set(n, 'error', 'Email search failed: ' + errMsg(e));
+        return { email: null, error: errMsg(e) };
+      }
+    };
+
+    return { patch, mkLog, loadContacts, loadEmail };
+  }, [setData]);
+
+  const collect = useCallback((job: Job, profile: Profile) => {
+    const r = (runs.current[job.id] ?? 0) + 1;
+    runs.current[job.id] = r;
+    const { patch, mkLog, loadContacts, loadEmail } = run(job, profile);
+    setData((prev) => ({ ...prev, [job.id]: { status: 'collecting', log: [], contacts: [] } }));
+    const log = mkLog(r);
+    // Both branches run in parallel; each handles its own failure.
+    Promise.all([loadContacts(r, log), loadEmail(log)]).then(([cErr, e]) =>
+      patch(r, (d) => (d.status === 'collecting' ? {
+        status: 'done', contacts: d.contacts, email: e.email,
+        err: { contacts: cErr, email: e.error }, busy: { contacts: false, email: false },
+      } : d)));
+  }, [run, setData]);
+
+  // Reruns a single branch of a finished job.
+  const retry = useCallback((job: Job, profile: Profile, branch: Branch) => {
+    const r = runs.current[job.id] ?? 0;
+    const { patch, loadContacts, loadEmail } = run(job, profile);
+    const finish = (error: string | null, extra: { email?: Result['email'] } = {}) =>
+      patch(r, (d) => (d.status === 'done'
+        ? { ...d, ...extra, err: { ...d.err, [branch]: error }, busy: { ...d.busy, [branch]: false } } : d));
+    patch(r, (d) => (d.status === 'done'
+      ? { ...d, err: { ...d.err, [branch]: null }, busy: { ...d.busy, [branch]: true } } : d));
+    if (branch === 'contacts') loadContacts(r, NO_LOG).then((error) => finish(error));
+    else loadEmail(NO_LOG).then((e) => finish(e.error, { email: e.email }));
+  }, [run]);
+
+  return { collect, retry };
 }

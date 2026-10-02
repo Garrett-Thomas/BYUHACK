@@ -47,7 +47,7 @@ export default function ContactCard({ jobId, contact: c, profile, onChange }: Pr
         extra={
           <div className="links">
             <CopyButton className="btn-text" label="Copy message" text={c.text} />
-            <a href="#" onClick={(e) => e.preventDefault()}>Open LinkedIn profile ↗</a>
+            <a href={c.profileUrl} target="_blank" rel="noopener">Open LinkedIn profile ↗</a>
           </div>
         } />
     </div>

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { Contact, Email, Job, JobData, Profile, Screen, Speed } from './types';
+import type { Branch, Contact, Email, Job, JobData, Profile, Screen } from './types';
 import { DEFAULT_PROFILE } from './data/constants';
-import { buildDone } from './lib/drafting';
 import { loadJobs } from './lib/loadJobs';
 import { useCollector } from './hooks/useCollector';
 import Header from './components/Header';
@@ -22,7 +21,6 @@ export default function App() {
   const [companyJobs, setCompanyJobs] = useState<Job[]>([]);
   const [data, setData] = useState<Record<string, JobData>>({});
   const [profile, setProfile] = useState<Profile>({ ...DEFAULT_PROFILE });
-  const [collectSpeed, setCollectSpeed] = useState<Speed>('Normal');
   const [showRepo, setShowRepo] = useState(true);
 
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -30,7 +28,7 @@ export default function App() {
   const [generatedAt, setGeneratedAt] = useState<Date | null>(null);
   const [loaded, setLoaded] = useState(false);
 
-  const collect = useCollector(setData, collectSpeed);
+  const { collect, retry } = useCollector(setData);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,13 +37,6 @@ export default function App() {
       setJobs(r.jobs);
       setRepoCount(r.repoCount);
       setGeneratedAt(r.generatedAt);
-      // Seed the first couple of listings as already "done" so the first screen
-      // shows real worked rows instead of an empty shell.
-      setData((prev) => {
-        const seeded = { ...prev };
-        for (const job of r.jobs.slice(0, 2)) seeded[job.id] = buildDone(job, DEFAULT_PROFILE);
-        return seeded;
-      });
       setLoaded(true);
     });
     return () => { cancelled = true; };
@@ -88,7 +79,7 @@ export default function App() {
   const updateEmail = (id: string, patch: Partial<Email>) =>
     setData((prev) => {
       const d = prev[id];
-      if (!d || d.status !== 'done') return prev;
+      if (!d || d.status !== 'done' || !d.email) return prev;
       return { ...prev, [id]: { ...d, email: { ...d.email, ...patch } } };
     });
 
@@ -116,6 +107,7 @@ export default function App() {
         {current === 'job' && job && (
           <JobDetailScreen job={job} d={data[job.id]} prevScreen={prevScreen} profile={profile} go={go}
             onCollect={() => collect(job, profile)}
+            onRetry={(b: Branch) => retry(job, profile, b)}
             onContact={(contactId, patch) => updateContact(job.id, contactId, patch)}
             onEmail={(patch) => updateEmail(job.id, patch)} />
         )}
@@ -123,7 +115,7 @@ export default function App() {
           <ProfileScreen profile={profile} onChange={(patch) => setProfile((p) => ({ ...p, ...patch }))} />
         )}
       </main>
-      <Footer speed={collectSpeed} onSpeed={setCollectSpeed} showRepo={showRepo} onShowRepo={setShowRepo} />
+      <Footer showRepo={showRepo} onShowRepo={setShowRepo} />
     </div>
   );
 }

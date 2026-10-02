@@ -1,97 +1,10 @@
-import express from "express";
-import type { NextFunction, Request, Response } from "express";
-import { draftEmail } from "./draftEmail.js";
-import { findContact } from "./findContact.js";
+import { createApp } from "./app.js";
+import { openDb, resolveDatabasePath } from "./db.js";
 
-const app = express();
-app.use(express.json({ limit: "100kb" }));
-
-app.get("/health", (_req, res) => {
-  res.json({ ok: true });
-});
-
-app.post("/api/find-contact", async (req: Request, res: Response) => {
-  const start = Date.now();
-  const body: unknown = req.body;
-  if (typeof body !== "object" || body === null || Array.isArray(body)) {
-    res.status(400).json({ error: "Body must be a JSON object" });
-    return;
-  }
-  const info = body as Record<string, unknown>;
-  const { company, role } = info;
-  if (typeof company !== "string" || !company.trim() || typeof role !== "string" || !role.trim()) {
-    res.status(400).json({ error: "`company` and `role` are required non-empty strings" });
-    return;
-  }
-
-  try {
-    const result = await findContact(info);
-    console.log(
-      `find-contact company=${JSON.stringify(company)} role=${JSON.stringify(role)} result=${"email" in result ? "found" : "not-found"} ${Date.now() - start}ms`,
-    );
-    res.json(result);
-  } catch (err) {
-    console.error(
-      `find-contact company=${JSON.stringify(company)} role=${JSON.stringify(role)} result=error ${Date.now() - start}ms`,
-      err,
-    );
-    res.status(502).json({ error: "Upstream lookup failed" });
-  }
-});
-
-app.post("/api/draft-email", async (req: Request, res: Response) => {
-  const start = Date.now();
-  const body: unknown = req.body;
-  if (typeof body !== "object" || body === null || Array.isArray(body)) {
-    res.status(400).json({ error: "Body must be a JSON object" });
-    return;
-  }
-  const info = body as Record<string, unknown>;
-  const { company, role, email, label } = info;
-  if (
-    typeof company !== "string" ||
-    !company.trim() ||
-    typeof role !== "string" ||
-    !role.trim() ||
-    typeof email !== "string" ||
-    !email.trim() ||
-    typeof label !== "string" ||
-    !label.trim()
-  ) {
-    res.status(400).json({ error: "`company`, `role`, `email`, and `label` are required non-empty strings" });
-    return;
-  }
-
-  try {
-    const result = await draftEmail(info);
-    console.log(
-      `draft-email company=${JSON.stringify(company)} role=${JSON.stringify(role)} result=ok ${Date.now() - start}ms`,
-    );
-    res.json(result);
-  } catch (err) {
-    console.error(
-      `draft-email company=${JSON.stringify(company)} role=${JSON.stringify(role)} result=error ${Date.now() - start}ms`,
-      err,
-    );
-    res.status(502).json({ error: "Upstream draft failed" });
-  }
-});
-
-// Body-parser errors (malformed JSON, too large) -> 400/413 instead of default HTML
-app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
-  if (err instanceof SyntaxError) {
-    res.status(400).json({ error: "Malformed JSON body" });
-    return;
-  }
-  const status = (err as { status?: number })?.status;
-  if (status === 413) {
-    res.status(413).json({ error: "Body too large" });
-    return;
-  }
-  next(err);
-});
+const db = openDb(resolveDatabasePath(process.env.DATABASE_PATH));
+const app = createApp(db);
 
 const port = Number(process.env.PORT) || 3001;
-app.listen(port, () => {
-  console.log(`server listening on :${port}`);
+app.listen(port, "127.0.0.1", () => {
+  console.log(`server listening on 127.0.0.1:${port}`);
 });

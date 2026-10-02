@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Warmline capture options</title>
+  <style>
+    body { font: 14px system-ui, sans-serif; max-width: 520px; margin: 24px auto; padding: 0 16px; }
+    label { display: block; margin: 14px 0 4px; font-weight: 600; }
+    input[type=text] { width: 100%; padding: 6px; box-sizing: border-box; }
+    .row { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+    #status { margin-top: 8px; color: #555; min-height: 1.2em; }
+    dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; }
+    dd { margin: 0; }
+  </style>
+</head>
+<body>
+  <h1>Warmline capture</h1>
+  <label for="serverUrl">Server URL</label>
+  <input id="serverUrl" type="text" placeholder="http://127.0.0.1:3001" spellcheck="false">
+  <div class="row"><input id="enabled" type="checkbox"><label for="enabled" style="margin:0">Capture enabled</label></div>
+  <div class="row"><button id="save">Save</button></div>
+  <div id="status" role="status"></div>
+
+  <h2>Queue</h2>
+  <dl>
+    <dt>Queued</dt><dd id="queued">0</dd>
+    <dt>Failed (dropped)</dt><dd id="failed">0</dd>
+  </dl>
+  <div class="row">
+    <button id="retry">Retry now</button>
+    <button id="clear">Clear queue</button>
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>

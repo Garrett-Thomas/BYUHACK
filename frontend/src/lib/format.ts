@@ -1,6 +1,5 @@
 import type { Job, JobData } from '../types';
 
-export const slug = (co: string) => co.toLowerCase().replace(/[^a-z0-9]/g, '') + '.com';
 export const initials = (n: string) => n.split(' ').map((s) => s[0]).join('').slice(0, 2);
 
 export const categoryOf = (job: Job) => (/new grad/i.test(job.term || '') ? 'New Grad' : 'Internship');

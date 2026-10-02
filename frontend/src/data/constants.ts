@@ -1,5 +1,4 @@
-import type { ContactStatus, Job, Profile, Speed } from '../types';
-import { slug } from '../lib/format';
+import type { ContactStatus, Job, Profile } from '../types';
 
 // Seed used only if jobs.json can't be loaded (e.g. the scraper hasn't run
 // yet). The real list is produced daily by scraper/scrape-jobs.js — see
@@ -12,29 +11,6 @@ export const FALLBACK_JOBS: Job[] = [
 ].map(([company, role, location, repo, term], i) => ({
   id: 'j' + i, company, role, location, posted: '—', repo, term, hasListing: true, url: '',
 }));
-
-export const PEOPLE: [name: string, title: string, degree: string, reason: string][] = [
-  ['Priya Shah', 'Senior Software Engineer', '2nd', 'UC Berkeley alum · CS ’21'],
-  ['Marcus Lee', 'Engineering Manager', '2nd', '3 mutual connections'],
-  ['Hannah Okafor', 'Software Engineer II', 'Alumni', 'Same school · ACM club'],
-  ['Diego Alvarez', 'Technical Recruiter', '3rd', 'Recruits for this team'],
-  ['Sofia Chen', 'Staff Engineer', '2nd', 'Former intern at your last company'],
-];
-
-export const SPEEDS: Record<Speed, number> = { Fast: 350, Normal: 700, Slow: 1200 };
-
-export const logLines = (co: string): string[] => [
-  'Launching browser session',
-  'Signed in to LinkedIn',
-  'Searching "' + co + '" employees · 1st, 2nd, alumni',
-  'Found 41 profiles — ranking by relevance to role',
-  'Checking alumni + mutual overlap with your profile',
-  'Drafting referral notes from your resume',
-  'Searching web for ' + co + ' recruiting / HR emails',
-  'Verified email pattern first.last@' + slug(co),
-  'Drafting email to hiring team',
-  'Done',
-];
 
 export const DEFAULT_PROFILE: Profile = {
   name: 'Alex Rivera',

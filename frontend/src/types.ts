@@ -18,6 +18,7 @@ export interface Contact {
   title: string;
   degree: string;
   reason: string;
+  profileUrl: string;
   status: ContactStatus;
   text: string;
 }
@@ -30,9 +31,23 @@ export interface Email {
   text: string;
 }
 
+export interface LogEntry {
+  id: number;
+  text: string;
+  state: 'active' | 'done' | 'error';
+}
+
+export type Branch = 'contacts' | 'email';
+
 export type JobData =
-  | { status: 'collecting'; step: number; contacts: Contact[] }
-  | { status: 'done'; contacts: Contact[]; email: Email };
+  | { status: 'collecting'; log: LogEntry[]; contacts: Contact[] }
+  | {
+      status: 'done';
+      contacts: Contact[];
+      email: Email | null;
+      err: Record<Branch, string | null>;
+      busy: Record<Branch, boolean>;
+    };
 
 export interface Profile {
   name: string;
@@ -42,4 +57,3 @@ export interface Profile {
 }
 
 export type Screen = 'jobs' | 'company' | 'job' | 'profile';
-export type Speed = 'Fast' | 'Normal' | 'Slow';

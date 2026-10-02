@@ -1,39 +1,37 @@
-import type { Contact, Job } from '../types';
-import { logLines } from '../data/constants';
+import type { Contact, LogEntry } from '../types';
 import { initials } from '../lib/format';
 
+const EXPECTED = 5;
+
 interface Props {
-  job: Job;
-  step: number;
+  log: LogEntry[];
   contacts: Contact[];
 }
 
-export default function CollectingPanel({ job, step, contacts }: Props) {
-  const lines = logLines(job.company);
-  // The source design evaluates this once more at step === lines.length, which
-  // yields 111% and spills the fill past the panel edge — clamped here.
-  const pct = Math.min(100, Math.round((step / (lines.length - 1)) * 100));
+export default function CollectingPanel({ log, contacts }: Props) {
+  // Done entries over the expected total (~5), clamped so extra entries can't overflow the bar.
+  const pct = Math.min(100, Math.round((log.filter((l) => l.state === 'done').length / EXPECTED) * 100));
 
   return (
     <div className="collect-col">
       <div className="term" id="term">
         <div className="term-top">
-          <span>browser agent</span>
+          <span>search</span>
           <span className="num" id="pct">{pct + '%'}</span>
         </div>
         <div className="term-track"><div className="term-bar" id="bar" style={{ width: pct + '%' }} /></div>
         <div id="log">
-          {lines.slice(0, step + 1).map((t, i) => (
-            <div className="term-line" key={i}>
-              <span className="term-mark">{i < step ? '✓' : '›'}</span>
-              <span>{t}</span>
+          {log.map((l) => (
+            <div className="term-line" key={l.id}>
+              <span className="term-mark">{l.state === 'done' ? '✓' : l.state === 'error' ? '✗' : '›'}</span>
+              <span>{l.text}</span>
             </div>
           ))}
         </div>
         <span className="cursor" aria-hidden="true"></span>
       </div>
       <div className="found">
-        <div className="eyebrow" id="found-count">{'People found · ' + contacts.length}</div>
+        <div className="eyebrow" id="found-count">{'Saved connections · ' + contacts.length}</div>
         <div className="found" id="found-list">
           {contacts.map((c) => (
             <div className="found-row" key={c.id}>
