@@ -131,7 +131,7 @@ h2{margin:0;font-size:22px;font-weight:800;letter-spacing:-0.02em}
 .msel-opt input{accent-color:var(--accent);flex-shrink:0}
 
 .pill-group{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.pill-toggle{border:1px solid var(--line-chip);background:var(--surface);color:var(--ink-3);border-radius:20px;padding:4px 12px;font-size:12px;cursor:pointer;white-space:nowrap}
+.pill-toggle{height:38px;display:inline-flex;align-items:center;border:1px solid var(--line-chip);background:var(--surface);color:var(--ink-3);border-radius:18px;padding:0 14px;font-size:13px;cursor:pointer;white-space:nowrap}
 .pill-toggle:hover{border-color:var(--accent);color:var(--accent)}
 .pill-toggle.on{background:var(--accent-tint);color:var(--accent);border-color:var(--accent-tint-line)}
 .tbl-head{display:grid;gap:16px;padding:10px 18px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-4)}
