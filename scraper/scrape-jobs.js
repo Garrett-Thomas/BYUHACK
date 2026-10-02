@@ -29,7 +29,7 @@ const SOURCES = [
 const SWE_INCLUDE_RE = /software|\bswe\b|front.?end|back.?end|full.?stack|platform engineer|site reliability|\bsre\b|devops|cloud engineer|data engineer|machine learning|\bml\b engineer|applied scientist|web developer|mobile (?:developer|engineer)|ios engineer|android engineer/i;
 const SWE_EXCLUDE_RE = /hardware|firmware|electrical|mechanical|civil|chemical|manufacturing|physical ai|rf engineer|asic/i;
 const isSweRole = (title) => SWE_INCLUDE_RE.test(title) && !SWE_EXCLUDE_RE.test(title);
-const MAX_JOBS = 40;
+const MAX_JOBS = 150;
 const MAX_AGE_DAYS = 120;
 
 // Collapses city shorthand so "SF" and "San Francisco, CA" end up as one
