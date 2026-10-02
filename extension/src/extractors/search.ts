@@ -1,5 +1,5 @@
-import { EXTRACTOR_VERSION, type ConnectionInput } from '../types';
-import { clean, companyFromHeadline, orNull, profileUrlFrom, textOf } from './common';
+import { EXTRACTOR_VERSION, type CapturedPerson, type Degree } from '../types';
+import { clean, orNull, profileUrlFrom, textOf } from './common';
 
 const IN_LINK = 'a[href*="/in/"]';
 
@@ -29,6 +29,17 @@ function stripDegree(s: string): string {
   return clean(s.replace(/[•·]\s*(1st|2nd|3rd\+?)\s*$/i, ''));
 }
 
+/**
+ * Degree from the name line ("Name • 2nd"), read before the marker is stripped. Only 1st and 2nd
+ * are returned; "3rd" / "3rd+" and anything unparseable give null, and those cards are dropped.
+ */
+function degreeOf(anchor: Element): Degree | null {
+  const line = anchor.closest('p, .entity-result__title-text') ?? anchor;
+  const m = /[•·]\s*(1st|2nd|3rd)\+?(?![a-z0-9])/i.exec(textOf(line));
+  const d = m?.[1]?.toLowerCase();
+  return d === '1st' || d === '2nd' ? d : null;
+}
+
 function subtitles(anchor: Element, card: Element): { headline: string; location: string } {
   // Primary: siblings that follow the name <p> inside its parent container.
   const p = anchor.closest('p');
@@ -45,14 +56,16 @@ function subtitles(anchor: Element, card: Element): { headline: string; location
   };
 }
 
-export function extractSearchResults(doc: Document, now: () => Date = () => new Date()): ConnectionInput[] {
+export function extractSearchResults(doc: Document, now: () => Date = () => new Date()): CapturedPerson[] {
   const seen = new Set<string>();
-  const out: ConnectionInput[] = [];
+  const out: CapturedPerson[] = [];
   for (const card of cardRoots(doc)) {
     const a = nameAnchor(card);
     if (!a) continue;
     const url = profileUrlFrom(a.getAttribute('href'));
     if (!url || seen.has(url)) continue;
+    const degree = degreeOf(a);
+    if (!degree) continue;
     const name = stripDegree(textOf(a)) || clean(card.querySelector('img[alt]')?.getAttribute('alt'));
     if (!name || /^linkedin member$/i.test(name)) continue;
     seen.add(url);
@@ -63,7 +76,7 @@ export function extractSearchResults(doc: Document, now: () => Date = () => new 
       sourceProfileUrl: url,
       name,
       headline: h,
-      company: companyFromHeadline(h),
+      degree,
       location: orNull(location),
       notes: null,
       tags: [],

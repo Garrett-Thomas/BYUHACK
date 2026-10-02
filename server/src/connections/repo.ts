@@ -11,6 +11,7 @@ export type Connection = {
   headline: string | null;
   company: string | null;
   location: string | null;
+  degree: "1st" | "2nd" | "3rd" | null;
   notes: string | null;
   tags: string[];
   capturedAt: string;
@@ -34,6 +35,7 @@ function toConnection(db: DatabaseSync, r: Row): Connection {
     headline: (r.headline as string | null) ?? null,
     company: (r.company as string | null) ?? null,
     location: (r.location as string | null) ?? null,
+    degree: (r.degree as Connection["degree"]) ?? null,
     notes: (r.notes as string | null) ?? null,
     tags,
     capturedAt: r.captured_at as string,
@@ -80,7 +82,7 @@ export function upsert(db: DatabaseSync, input: ConnectionInput): { status: "cre
       status = "updated";
       db.prepare(
         `UPDATE connections SET source = ?, source_profile_url = ?, name = ?, headline = ?, company = ?,
-           normalized_company = ?, location = ?, notes = ?, captured_at = ?, extractor_version = ?, updated_at = ?
+           normalized_company = ?, location = ?, degree = ?, notes = ?, captured_at = ?, extractor_version = ?, updated_at = ?
          WHERE id = ?`,
       ).run(
         input.source,
@@ -90,6 +92,7 @@ export function upsert(db: DatabaseSync, input: ConnectionInput): { status: "cre
         company,
         normalizedCompany,
         input.location ?? null,
+        input.degree ?? null,
         input.notes ?? null,
         input.capturedAt,
         input.extractorVersion,
@@ -102,8 +105,8 @@ export function upsert(db: DatabaseSync, input: ConnectionInput): { status: "cre
       status = "created";
       db.prepare(
         `INSERT INTO connections (id, source, source_profile_url, normalized_profile_url, name, headline, company,
-           normalized_company, location, notes, captured_at, extractor_version, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           normalized_company, location, degree, notes, captured_at, extractor_version, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         id,
         input.source,
@@ -114,6 +117,7 @@ export function upsert(db: DatabaseSync, input: ConnectionInput): { status: "cre
         company,
         normalizedCompany,
         input.location ?? null,
+        input.degree ?? null,
         input.notes ?? null,
         input.capturedAt,
         input.extractorVersion,

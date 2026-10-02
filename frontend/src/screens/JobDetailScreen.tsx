@@ -1,5 +1,6 @@
 import type { Branch, Contact, Email, Job, JobData, Profile, Screen } from '../types';
 import { jobMeta, linkedInPeopleUrl } from '../lib/format';
+import { useConnectionPoll } from '../hooks/useConnectionPoll';
 import NonePanel from './NonePanel';
 import CollectingPanel from './CollectingPanel';
 import DonePanel from './DonePanel';
@@ -12,11 +13,16 @@ interface Props {
   go: (s: Screen) => void;
   onCollect: () => void;
   onRetry: (b: Branch) => void;
+  onFind: () => void;
+  onSync: () => void;
   onContact: (contactId: string, patch: Partial<Contact>) => void;
   onEmail: (patch: Partial<Email>) => void;
 }
 
-export default function JobDetailScreen({ job, d, prevScreen, profile, go, onCollect, onRetry, onContact, onEmail }: Props) {
+export default function JobDetailScreen({ job, d, prevScreen, profile, go, onCollect, onRetry, onFind, onSync, onContact, onEmail }: Props) {
+  const { polling, start } = useConnectionPoll(job.id, onSync);
+  // The link itself still opens in a new tab; this just starts watching for new people.
+  const find = () => { onFind(); start(); };
   return (
     <>
       <button className="btn btn-back" type="button" onClick={() => go(prevScreen)}>
@@ -35,7 +41,8 @@ export default function JobDetailScreen({ job, d, prevScreen, profile, go, onCol
           {d?.status === 'done' && (
             <button className="btn btn-ghost" type="button" onClick={onCollect}>Re-run search</button>
           )}
-          <a className="btn btn-ghost" href={linkedInPeopleUrl(job.company)} target="_blank" rel="noopener">
+          <a className="btn btn-ghost" href={linkedInPeopleUrl(job.company)} target="_blank" rel="noopener"
+            onClick={find}>
             Find people on LinkedIn ↗
           </a>
           {job.hasListing && job.url && (
@@ -45,7 +52,7 @@ export default function JobDetailScreen({ job, d, prevScreen, profile, go, onCol
       </div>
       {!d ? <NonePanel job={job} onCollect={onCollect} />
         : d.status === 'collecting' ? <CollectingPanel log={d.log} contacts={d.contacts} />
-        : <DonePanel job={job} d={d} profile={profile}
+        : <DonePanel job={job} d={d} profile={profile} polling={polling} onFind={find}
             onRetry={onRetry} onContact={onContact} onEmail={onEmail} />}
     </>
   );

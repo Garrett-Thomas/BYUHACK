@@ -1,23 +1,34 @@
 import { useCallback, useRef } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import type { Branch, Contact, Job, JobData, LogEntry, Profile } from '../types';
+import type { Branch, Contact, Email, Job, JobData, LogEntry, Profile } from '../types';
 import type { ApiConnection } from '../lib/api';
 import { ApiError, draftEmail, findContact, getConnections } from '../lib/api';
 import { draftNote } from '../lib/drafting';
 
 type SetData = Dispatch<SetStateAction<Record<string, JobData>>>;
 type State = LogEntry['state'];
-type Result = { email: Extract<JobData, { status: 'done' }>['email']; error: string | null };
+type Result = { email: Email | null; error: string | null };
 interface Log { add: (text: string, state?: State) => number; set: (n: number, state: State, text?: string) => void }
 
 const NO_LOG: Log = { add: () => 0, set: () => {} };
 const errMsg = (e: unknown) => (e instanceof ApiError ? e.message : 'Something went wrong');
 
 const toContact = (c: ApiConnection, job: Job, p: Profile): Contact => ({
-  id: c.id, name: c.name, title: c.headline ?? '', degree: 'Saved',
+  id: c.id, name: c.name, title: c.headline ?? '', degree: c.degree ?? 'Saved',
   reason: c.notes ?? c.location ?? '', profileUrl: c.sourceProfileUrl,
   status: 'Not sent', text: draftNote({ name: c.name }, job, p),
 });
+
+// Merge by id: append new people; existing ones keep their note text and status
+// but take the refreshed name, title and degree.
+const mergeContacts = (cur: Contact[], next: Contact[]): Contact[] => {
+  const byId = new Map(next.map((c) => [c.id, c]));
+  const have = new Set(cur.map((c) => c.id));
+  return [
+    ...cur.map((c) => { const n = byId.get(c.id); return n ? { ...c, name: n.name, title: n.title, degree: n.degree } : c; }),
+    ...next.filter((c) => !have.has(c.id)),
+  ];
+};
 
 export function useCollector(setData: SetData) {
   // Per-job run id: bumped on every collect(). Async results carry the id they
@@ -29,7 +40,7 @@ export function useCollector(setData: SetData) {
     const id = job.id;
     // Functional update, applied only if `r` is still the job's current run.
     const patch = (r: number, fn: (d: JobData) => JobData) => {
-      if (runs.current[id] !== r) return;
+      if ((runs.current[id] ?? 0) !== r) return;
       setData((prev) => (prev[id] ? { ...prev, [id]: fn(prev[id]) } : prev));
     };
     const mkLog = (r: number): Log => ({
@@ -115,5 +126,28 @@ export function useCollector(setData: SetData) {
     else loadEmail(NO_LOG).then((e) => finish(e.error, { email: e.email }));
   }, [run]);
 
-  return { collect, retry };
+  // Creates the finished-but-empty state for a job with no data, without running
+  // either (paid) email branch.
+  const ensureIdle = useCallback((job: Job) => setData((prev) => (prev[job.id] ? prev : {
+    ...prev,
+    [job.id]: {
+      status: 'done', contacts: [], email: 'idle',
+      err: { contacts: null, email: null }, busy: { contacts: false, email: false },
+    },
+  })), [setData]);
+
+  // One poll tick: fetch saved connections and merge them in. Dropped if the job
+  // was re-run meanwhile; fetch errors are ignored (the next tick retries).
+  const sync = useCallback((job: Job, profile: Profile) => {
+    const r = runs.current[job.id] ?? 0;
+    const { patch } = run(job, profile);
+    getConnections(job.company).then(({ data }) => {
+      const next = data.map((c) => toContact(c, job, profile));
+      patch(r, (d) => (d.status === 'done'
+        ? { ...d, contacts: mergeContacts(d.contacts, next), err: next.length ? { ...d.err, contacts: null } : d.err }
+        : { ...d, contacts: mergeContacts(d.contacts, next) }));
+    }, () => {});
+  }, [run]);
+
+  return { collect, retry, ensureIdle, sync };
 }

@@ -38,4 +38,11 @@ export const migrations: Migration[] = [
       );
     `,
   },
+  {
+    version: 2,
+    name: "connection_degree",
+    sql: `
+      ALTER TABLE connections ADD COLUMN degree TEXT;
+    `,
+  },
 ];

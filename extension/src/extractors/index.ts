@@ -1,20 +1,17 @@
-import type { ConnectionInput } from '../types';
-import { extractProfile } from './profile';
+import type { CapturedPerson } from '../types';
 import { extractSearchResults } from './search';
 
-export { extractProfile, extractSearchResults };
-export { companyFromHeadline } from './common';
+export { extractSearchResults };
 
-export type PageKind = 'profile' | 'search' | null;
+export type PageKind = 'search' | null;
 
 export function pageKind(pathname: string): PageKind {
-  if (/^\/in\/[^/]+/.test(pathname)) return 'profile';
   if (/^\/search\/results\/people(\/|$)/.test(pathname)) return 'search';
   return null;
 }
 
-/** Pure: (document, url) -> records for whatever supported page this is. */
-export function extractForPage(doc: Document, url: string): ConnectionInput[] {
+/** Pure: (document, url) -> records for a people-search page, nothing for any other page. */
+export function extractForPage(doc: Document, url: string): CapturedPerson[] {
   let pathname: string;
   try {
     pathname = new URL(url).pathname;
@@ -22,8 +19,6 @@ export function extractForPage(doc: Document, url: string): ConnectionInput[] {
     return [];
   }
   switch (pageKind(pathname)) {
-    case 'profile':
-      return extractProfile(doc, url);
     case 'search':
       return extractSearchResults(doc);
     default:

@@ -17,20 +17,6 @@ export function orNull(s: string): string | null {
 }
 
 /**
- * Company = text after the first " at " in the headline, cut at a separator such as " | ".
- * Returns null when there is no " at " or nothing follows it.
- */
-export function companyFromHeadline(headline: string | null): string | null {
-  if (!headline) return null;
-  const idx = headline.indexOf(' at ');
-  if (idx < 0) return null;
-  let rest = headline.slice(idx + 4);
-  rest = rest.split(/\s+[|·•]\s+/)[0] ?? rest;
-  rest = clean(rest);
-  return rest ? rest : null;
-}
-
-/**
  * Absolute linkedin.com/in/<slug>/ URL (query, hash and deeper path dropped), or null.
  * The server does the authoritative normalization; this just avoids sending junk.
  */

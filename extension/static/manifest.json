@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Warmline LinkedIn Capture",
   "version": "0.1.0",
-  "description": "Saves the LinkedIn people you view into your local Warmline server.",
+  "description": "Saves the people on LinkedIn searches opened from Warmline into your local Warmline server.",
   "permissions": ["storage", "alarms"],
   "host_permissions": [
     "https://www.linkedin.com/*",
@@ -15,7 +15,7 @@
     {
       "matches": ["https://www.linkedin.com/*"],
       "js": ["content.js"],
-      "run_at": "document_idle"
+      "run_at": "document_start"
     }
   ],
   "options_ui": { "page": "options.html", "open_in_tab": true }

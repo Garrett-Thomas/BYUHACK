@@ -19,6 +19,7 @@ export interface ApiConnection {
   company: string | null;
   location: string | null;
   notes: string | null;
+  degree: '1st' | '2nd' | '3rd' | null;
   tags: string[];
   capturedAt: string;
   extractorVersion: string;

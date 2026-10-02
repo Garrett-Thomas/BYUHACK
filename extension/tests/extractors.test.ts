@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { companyFromHeadline, extractForPage, extractProfile, extractSearchResults } from '../src/extractors';
+import { extractForPage, extractSearchResults, pageKind } from '../src/extractors';
 
 function load(name: string): Document {
   const html = readFileSync(join(process.cwd(), 'fixtures', name), 'utf8');
@@ -11,85 +11,75 @@ function load(name: string): Document {
 describe('people-search extractor', () => {
   const records = extractSearchResults(load('people-search.html'));
 
-  it('finds one record per person card and ignores non-person items', () => {
-    expect(records.map((r) => r.name)).toEqual([
-      'Jordan Example',
-      'Casey Sample',
-      'Riley Placeholder',
-      'Morgan Testperson',
-      'Taylor Fakename',
-      'Avery Nobody',
+  it('keeps one record per 1st/2nd-degree person card and ignores everything else', () => {
+    expect(records.map((r) => r.name)).toEqual(['Jordan Example', 'Casey Sample', 'Morgan Testperson', 'Taylor Fakename']);
+  });
+
+  it('returns the degree parsed from the name line', () => {
+    expect(records.map((r) => [r.name, r.degree])).toEqual([
+      ['Jordan Example', '1st'],
+      ['Casey Sample', '2nd'],
+      ['Morgan Testperson', '1st'],
+      ['Taylor Fakename', '2nd'],
     ]);
+  });
+
+  it('drops 3rd-degree, 3rd+ and "LinkedIn Member" cards', () => {
+    const names = records.map((r) => r.name);
+    expect(names).not.toContain('Riley Placeholder'); // 3rd
+    expect(names).not.toContain('Avery Nobody'); // 3rd+
+    expect(names).not.toContain('LinkedIn Member'); // 2nd, but anonymous
+    expect(records.map((r) => r.sourceProfileUrl)).not.toContain('https://www.linkedin.com/in/ACoAAFAKE00000007/');
   });
 
   it('returns clean profile URLs (no query) and never the mutual-connection decoys', () => {
     expect(records.map((r) => r.sourceProfileUrl)).toEqual([
       'https://www.linkedin.com/in/jordan-example-1a2b3c/',
       'https://www.linkedin.com/in/casey-sample-4d5e6f/',
-      'https://www.linkedin.com/in/riley-placeholder-7a8b9c/',
       'https://www.linkedin.com/in/morgan-testperson-0d1e2f/',
       'https://www.linkedin.com/in/taylor-fakename-3a4b5c/',
-      'https://www.linkedin.com/in/avery-nobody-6d7e8f/',
     ]);
   });
 
-  it('extracts headline, location and company', () => {
+  it('extracts headline and location, and leaves company to the tab registration', () => {
     const by = Object.fromEntries(records.map((r) => [r.name, r]));
     expect(by['Jordan Example']).toMatchObject({
       headline: 'Software Engineer at Example Corp',
-      company: 'Example Corp',
       location: 'Exampleville, Testland',
     });
-    expect(by['Casey Sample']?.company).toBe('Sample Labs, Inc.');
-    expect(by['Taylor Fakename']?.company).toBe('Demo Industries');
-    expect(by['Riley Placeholder']).toMatchObject({ headline: 'Student', company: null });
-    expect(by['Morgan Testperson']?.company).toBeNull();
+    expect(by['Casey Sample']?.headline).toBe('Technical Recruiter at Sample Labs, Inc.');
+    for (const r of records) expect(r).not.toHaveProperty('company');
   });
 
   it('sets constant fields', () => {
     for (const r of records) {
       expect(r.source).toBe('linkedin');
-      expect(r.extractorVersion).toBe('1.0.0');
+      expect(r.extractorVersion).toBe('1.1.0');
       expect(r.tags).toEqual([]);
       expect(Number.isNaN(Date.parse(r.capturedAt))).toBe(false);
     }
   });
-});
 
-describe('profile extractor', () => {
-  const url = 'https://www.linkedin.com/in/jordan-example-1a2b3c/?trk=x';
-  it('extracts the profile header', () => {
-    const [r, ...rest] = extractProfile(load('profile.html'), url);
-    expect(rest).toHaveLength(0);
-    expect(r).toMatchObject({
-      sourceProfileUrl: 'https://www.linkedin.com/in/jordan-example-1a2b3c/',
-      name: 'Jordan Example',
-      headline: 'Software Engineer at Example Corp',
-      company: 'Example Corp',
-      location: 'Exampleville, Testland',
-      extractorVersion: '1.0.0',
-    });
-  });
-
-  it('returns nothing when the URL is not a profile', () => {
-    expect(extractProfile(new DOMParser().parseFromString('<h1>X</h1>', 'text/html'), 'https://www.linkedin.com/feed/')).toEqual([]);
+  it('drops a card with no degree text', () => {
+    const doc = new DOMParser().parseFromString(
+      `<div role="listitem"><p><a href="https://www.linkedin.com/in/no-degree-1/">No Degree</a></p><div><p><span>Engineer</span></p></div></div>
+       <div role="listitem"><p><a href="https://www.linkedin.com/in/has-degree-2/">Has Degree</a><span>\u00b7 2nd</span></p><div><p><span>Engineer</span></p></div></div>`,
+      'text/html',
+    );
+    expect(extractSearchResults(doc).map((r) => [r.name, r.degree])).toEqual([['Has Degree', '2nd']]);
   });
 });
 
 describe('extractForPage routing', () => {
-  it('routes by path', () => {
-    expect(extractForPage(load('people-search.html'), 'https://www.linkedin.com/search/results/people/?keywords=x')).toHaveLength(6);
-    expect(extractForPage(load('profile.html'), 'https://www.linkedin.com/in/jordan-example-1a2b3c/')).toHaveLength(1);
-    expect(extractForPage(load('profile.html'), 'https://www.linkedin.com/feed/')).toEqual([]);
+  it('extracts only on people-search pages', () => {
+    expect(extractForPage(load('people-search.html'), 'https://www.linkedin.com/search/results/people/?keywords=x')).toHaveLength(4);
+    expect(extractForPage(load('people-search.html'), 'https://www.linkedin.com/in/jordan-example-1a2b3c/')).toEqual([]);
+    expect(extractForPage(load('people-search.html'), 'https://www.linkedin.com/feed/')).toEqual([]);
   });
-});
 
-describe('companyFromHeadline', () => {
-  it('handles absent and present " at "', () => {
-    expect(companyFromHeadline(null)).toBeNull();
-    expect(companyFromHeadline('Student')).toBeNull();
-    expect(companyFromHeadline('Engineer at ')).toBeNull();
-    expect(companyFromHeadline('Engineer at Foo | Mentor')).toBe('Foo');
-    expect(companyFromHeadline('Chat about data')).toBeNull();
+  it('has no profile page kind', () => {
+    expect(pageKind('/in/jordan-example-1a2b3c/')).toBeNull();
+    expect(pageKind('/search/results/people/')).toBe('search');
+    expect(pageKind('/search/results/companies/')).toBeNull();
   });
 });

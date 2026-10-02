@@ -28,7 +28,7 @@ export default function App() {
   const [generatedAt, setGeneratedAt] = useState<Date | null>(null);
   const [loaded, setLoaded] = useState(false);
 
-  const { collect, retry } = useCollector(setData);
+  const { collect, retry, ensureIdle, sync } = useCollector(setData);
 
   useEffect(() => {
     let cancelled = false;
@@ -79,7 +79,7 @@ export default function App() {
   const updateEmail = (id: string, patch: Partial<Email>) =>
     setData((prev) => {
       const d = prev[id];
-      if (!d || d.status !== 'done' || !d.email) return prev;
+      if (!d || d.status !== 'done' || !d.email || d.email === 'idle') return prev;
       return { ...prev, [id]: { ...d, email: { ...d.email, ...patch } } };
     });
 
@@ -108,6 +108,7 @@ export default function App() {
           <JobDetailScreen job={job} d={data[job.id]} prevScreen={prevScreen} profile={profile} go={go}
             onCollect={() => collect(job, profile)}
             onRetry={(b: Branch) => retry(job, profile, b)}
+            onFind={() => ensureIdle(job)} onSync={() => sync(job, profile)}
             onContact={(contactId, patch) => updateContact(job.id, contactId, patch)}
             onEmail={(patch) => updateEmail(job.id, patch)} />
         )}

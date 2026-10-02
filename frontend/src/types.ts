@@ -44,7 +44,7 @@ export type JobData =
   | {
       status: 'done';
       contacts: Contact[];
-      email: Email | null;
+      email: Email | null | 'idle'; // 'idle': email search not run yet
       err: Record<Branch, string | null>;
       busy: Record<Branch, boolean>;
     };

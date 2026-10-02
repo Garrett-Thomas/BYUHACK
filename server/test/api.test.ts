@@ -3,9 +3,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { DatabaseSync } from "node:sqlite";
+import { DatabaseSync } from "node:sqlite";
 import { createApp } from "../src/app.js";
 import { openDb } from "../src/db.js";
+import { migrations } from "../src/migrations.js";
 import { normalizeCompany, normalizeProfileUrl } from "../src/connections/normalize.js";
 
 const body = (over: Record<string, unknown> = {}) => ({
@@ -67,6 +68,33 @@ describe("POST /api/v1/connections", () => {
     expect(b.body.connection.name).toBe("Jordan E.");
     expect(b.body.connection.tags).toEqual([]);
     expect(b.body.connection.createdAt).toBe(a.body.connection.createdAt);
+  });
+
+  it("round-trips degree, defaults it to null, and overwrites it on update", async () => {
+    const a = await post(body({ degree: "2nd" }));
+    expect(a.status).toBe(201);
+    expect(a.body.connection.degree).toBe("2nd");
+    const got = await request(app).get(`/api/v1/connections/${a.body.id}`);
+    expect(got.body.degree).toBe("2nd");
+    const listed = await request(app).get("/api/v1/connections").query({ company: "Stripe" });
+    expect(listed.body.data[0].degree).toBe("2nd");
+
+    const b = await post(body({ degree: "1st" }));
+    expect(b.body.status).toBe("updated");
+    expect(b.body.connection.degree).toBe("1st");
+
+    const c = await post(body({ degree: null }));
+    expect(c.body.connection.degree).toBeNull();
+
+    const d = await post(body({ sourceProfileUrl: "https://www.linkedin.com/in/no-degree/" }));
+    expect(d.body.connection.degree).toBeNull();
+  });
+
+  it("422 for an invalid degree", async () => {
+    const a = await post(body({ degree: "4th" }));
+    expect(a.status).toBe(422);
+    expect(a.body.details[0].path).toBe("degree");
+    expect((await post(body({ degree: 1 }))).status).toBe(422);
   });
 
   it("replays a repeated idempotency key", async () => {
@@ -165,6 +193,47 @@ describe("persistence", () => {
       expect(res.status).toBe(200);
       expect(res.body.name).toBe("Jordan Example");
       second.close();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("migrations", () => {
+  it("migration 2 applies to an existing v1 database and keeps its rows", () => {
+    const dir = mkdtempSync(join(tmpdir(), "warmline-"));
+    try {
+      const path = join(dir, "v1.db");
+      const old = new DatabaseSync(path);
+      old.exec("CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at TEXT NOT NULL)");
+      old.exec(migrations[0].sql);
+      old.prepare("INSERT INTO schema_migrations (version, name, applied_at) VALUES (1, ?, ?)").run(
+        migrations[0].name,
+        "2026-10-01T00:00:00.000Z",
+      );
+      old
+        .prepare(
+          `INSERT INTO connections (id, source, source_profile_url, normalized_profile_url, name, company, normalized_company,
+             captured_at, extractor_version, created_at, updated_at)
+           VALUES ('old-1', 'linkedin', 'https://www.linkedin.com/in/old-timer/', 'https://www.linkedin.com/in/old-timer/',
+             'Old Timer', 'Stripe', 'stripe', '2026-10-01T00:00:00.000Z', '1.0.0', '2026-10-01T00:00:00.000Z', '2026-10-01T00:00:00.000Z')`,
+        )
+        .run();
+      old.close();
+
+      const upgraded = openDb(path);
+      const row = upgraded.prepare("SELECT name, degree FROM connections WHERE id = 'old-1'").get() as {
+        name: string;
+        degree: string | null;
+      };
+      expect(row).toEqual({ name: "Old Timer", degree: null });
+      const versions = upgraded.prepare("SELECT version FROM schema_migrations ORDER BY version").all();
+      expect(versions.map((v) => Number(v.version))).toEqual([1, 2]);
+      upgraded.close();
+
+      const again = openDb(path);
+      expect(again.prepare("SELECT COUNT(*) AS n FROM connections").get()).toEqual({ n: 1 });
+      again.close();
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

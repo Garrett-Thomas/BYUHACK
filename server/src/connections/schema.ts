@@ -15,6 +15,7 @@ export const connectionInputSchema = z.object({
   headline: nullableText(1000),
   company: nullableText(300),
   location: nullableText(300),
+  degree: z.enum(["1st", "2nd", "3rd"]).nullish(),
   notes: nullableText(5000),
   tags: z.array(z.string().trim().min(1).max(50)).max(50).nullish(),
   capturedAt: z.iso.datetime({ offset: true }),

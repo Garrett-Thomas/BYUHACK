@@ -181,6 +181,7 @@ export const openApiDocument = {
           headline: { type: "string", nullable: true, example: "Software Engineer at Example Company" },
           company: { type: "string", nullable: true, example: "Example Company" },
           location: { type: "string", nullable: true, example: "Provo, Utah, United States" },
+          degree: { type: "string", enum: ["1st", "2nd", "3rd"], nullable: true, description: "LinkedIn connection degree. Overwritten on every upsert (omitted = cleared)." },
           notes: { type: "string", nullable: true },
           tags: { type: "array", items: { type: "string" }, nullable: true },
           capturedAt: { type: "string", format: "date-time", example: "2026-10-02T00:00:00.000Z" },
@@ -190,7 +191,7 @@ export const openApiDocument = {
       Connection: {
         type: "object",
         required: [
-          "id", "source", "sourceProfileUrl", "name", "headline", "company", "location", "notes",
+          "id", "source", "sourceProfileUrl", "name", "headline", "company", "location", "degree", "notes",
           "tags", "capturedAt", "extractorVersion", "createdAt", "updatedAt",
         ],
         properties: {
@@ -201,6 +202,7 @@ export const openApiDocument = {
           headline: { type: "string", nullable: true },
           company: { type: "string", nullable: true },
           location: { type: "string", nullable: true },
+          degree: { type: "string", enum: ["1st", "2nd", "3rd"], nullable: true },
           notes: { type: "string", nullable: true },
           tags: { type: "array", items: { type: "string" } },
           capturedAt: { type: "string", format: "date-time" },

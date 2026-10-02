@@ -30,8 +30,13 @@ export function jobMeta(job: Job): string {
     : 'No listing — general referral outreach';
 }
 
-export const linkedInPeopleUrl = (company: string) =>
-  'https://www.linkedin.com/search/results/people/?keywords=' + encodeURIComponent(company);
+// 1st + 2nd degree people at `company`; `warmline` tells the extension to capture this tab.
+export const linkedInPeopleUrl = (company: string) => {
+  const q = encodeURIComponent(company);
+  return 'https://www.linkedin.com/search/results/people/?keywords=' + q +
+    '&network=' + encodeURIComponent('["F","S"]') +
+    '&origin=FACETED_SEARCH&warmline=' + q;
+};
 
 export const gridCols = (showRepo: boolean) => showRepo
   ? 'minmax(0,1fr) minmax(0,1.8fr) minmax(0,1.1fr) 64px minmax(0,1.4fr) 140px'

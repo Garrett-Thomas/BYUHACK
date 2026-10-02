@@ -7,12 +7,14 @@ interface Props {
   job: Job;
   d: Extract<JobData, { status: 'done' }>;
   profile: Profile;
+  polling: boolean;
+  onFind: () => void;
   onRetry: (b: Branch) => void;
   onContact: (contactId: string, patch: Partial<Contact>) => void;
   onEmail: (patch: Partial<Email>) => void;
 }
 
-export default function DonePanel({ job, d, profile, onRetry, onContact, onEmail }: Props) {
+export default function DonePanel({ job, d, profile, polling, onFind, onRetry, onContact, onEmail }: Props) {
   const { contacts, email, err, busy } = d;
   const sent = contacts.filter((c) => c.status !== 'Not sent').length;
   const retryBtn = (b: Branch) => (
@@ -27,6 +29,11 @@ export default function DonePanel({ job, d, profile, onRetry, onContact, onEmail
           <h2>LinkedIn connections <span className="sec-count">{'· ' + contacts.length}</span></h2>
           <span style={{ fontSize: 12, color: 'var(--ink-3)' }}>{sent + ' sent'}</span>
         </div>
+        {polling && (
+          <div className="eyebrow" style={{ textTransform: 'none', letterSpacing: 0, marginBottom: 10 }}>
+            checking LinkedIn for new people…
+          </div>
+        )}
         {err.contacts || busy.contacts ? (
           <div className="empty-rows">
             <div>{busy.contacts ? 'Looking up saved connections…' : "Couldn't load saved connections: " + err.contacts}</div>
@@ -34,8 +41,9 @@ export default function DonePanel({ job, d, profile, onRetry, onContact, onEmail
           </div>
         ) : contacts.length === 0 ? (
           <div className="empty-rows">
-            <div>{'No saved connections at ' + job.company + ' yet. Browse their LinkedIn people page with the Warmline extension on, then re-run.'}</div>
-            <a className="btn btn-solid" href={linkedInPeopleUrl(job.company)} target="_blank" rel="noopener">
+            <div>{'No saved connections at ' + job.company + ' yet. Open the LinkedIn search below with the Warmline extension on; people it finds show up here on their own.'}</div>
+            <a className="btn btn-solid" href={linkedInPeopleUrl(job.company)} target="_blank" rel="noopener"
+              onClick={onFind}>
               Find people on LinkedIn ↗
             </a>
           </div>
@@ -48,16 +56,27 @@ export default function DonePanel({ job, d, profile, onRetry, onContact, onEmail
           </div>
         )}
       </section>
-      {email && !err.email && !busy.email
+      {email && email !== 'idle' && !err.email && !busy.email
         ? <EmailComposer jobId={job.id} email={email} profile={profile} onChange={onEmail} />
         : (
           <section className="sticky-col">
             <h2 style={{ marginBottom: 12 }}>Email to hiring team</h2>
             <div className="empty-rows">
-              <div>{busy.email ? 'Searching for a recruiting email…'
-                : err.email ? "Couldn't find or draft an email: " + err.email
-                : 'No public recruiting email found for ' + job.company}</div>
-              {retryBtn('email')}
+              {email === 'idle' && !err.email && !busy.email ? (
+                <>
+                  <div>{'Search the web for a recruiting email at ' + job.company + ' and draft a note to them.'}</div>
+                  <button className="btn btn-solid" type="button" onClick={() => onRetry('email')}>
+                    Find recruiting email
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div>{busy.email ? 'Searching for a recruiting email…'
+                    : err.email ? "Couldn't find or draft an email: " + err.email
+                    : 'No public recruiting email found for ' + job.company}</div>
+                  {retryBtn('email')}
+                </>
+              )}
             </div>
           </section>
         )}
