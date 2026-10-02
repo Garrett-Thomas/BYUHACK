@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Profile } from '../types';
 import { ApiError } from '../lib/api';
@@ -20,6 +20,15 @@ export default function AiToolbar({ aiKey, presets = [], text, profile, onApply,
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isEmail = aiKey.endsWith(':email');
+  const taRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-grow: min 2 rows (rows attr), capped at 6 rows via CSS max-height.
+  useLayoutEffect(() => {
+    const el = taRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 2 + 'px';
+  }, [value]);
 
   async function rewrite(instruction: string) {
     const ins = instruction.trim();
@@ -47,10 +56,12 @@ export default function AiToolbar({ aiKey, presets = [], text, profile, onApply,
         </div>
       )}
       <div className="askrow">
-        <input className="inp-sm" id={'ai-' + aiKey} type="text" value={value}
+        <textarea ref={taRef} className="inp-sm ta-ask" id={'ai-' + aiKey} rows={2} value={value}
           placeholder={isEmail ? 'Ask AI to change this email…' : 'Ask AI to change this message…'}
           onChange={(e) => setValue(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); rewrite(value); } }} />
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); rewrite(value); }
+          }} />
         <button className="btn btn-run" type="button" disabled={busy} onClick={() => rewrite(value)}>
           {busy ? 'Rewriting…' : 'Rewrite'}
         </button>

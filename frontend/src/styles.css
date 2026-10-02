@@ -68,6 +68,10 @@ h1,h2{text-wrap:balance}
 .tabs{display:flex;gap:4px;height:100%;min-width:0}
 .tab{background:none;border:none;border-bottom:2px solid transparent;color:var(--ink-3);padding:0 12px;height:100%;cursor:pointer;font-size:14px;font-weight:500;white-space:nowrap}
 .tab.on{color:var(--ink);border-bottom-color:var(--accent)}
+/* header tabs: override the later sub-tab rules (.tabs/.tab below) that add margin + border */
+.hdr .hdr-in{height:72px}
+.hdr .tabs{margin:0;border-bottom:none;align-items:stretch}
+.hdr .tab{margin-bottom:0;padding:0 12px;height:100%;align-items:center;justify-content:center}
 .hdr-right{margin-left:auto;display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;color:var(--ink-3);white-space:nowrap}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0}
 
@@ -100,7 +104,8 @@ h2{margin:0;font-size:22px;font-weight:800;letter-spacing:-0.02em}
 
 .inp,.sel{height:38px;border:1px solid var(--line-strong);border-radius:18px;padding:0 12px;background:var(--surface);font-size:14px;min-width:0}
 .sel{padding:0 10px;-webkit-appearance:none;appearance:none}
-.inp-lg{height:44px;font-size:15px;padding:0 14px}
+.inp-lg{height:60px;font-size:18px;padding:0 22px;border-radius:30px}
+.btn-lg{font-size:15px;padding:0 26px;border-radius:30px}
 .inp-sm{height:32px;font-size:13px;padding:0 10px;border-color:var(--line-chip);border-radius:18px;border-style:solid;border-width:1px;background:var(--surface);min-width:0}
 .inp-flat{border:none;padding:0;font-size:13px;font-weight:500;background:none;min-width:0}
 .ta{width:100%;border:1px solid var(--line);border-radius:18px;padding:10px 12px;font-size:13.5px;line-height:1.55;resize:vertical;background:var(--raised);font-family:var(--sans)}
@@ -115,7 +120,10 @@ h2{margin:0;font-size:22px;font-weight:800;letter-spacing:-0.02em}
 .card-18{border-radius:18px}
 .toolbar{border-top:1px solid var(--hair);padding:10px 16px;background:var(--toolbar);display:flex;flex-direction:column;gap:8px}
 .presets{display:flex;gap:6px;flex-wrap:wrap}
-.askrow{display:flex;gap:8px}
+.askrow{display:flex;gap:8px;align-items:flex-end}
+.askrow .ta-ask{flex:1 1 0;min-width:0;width:100%;height:auto;min-height:0;max-height:calc(6 * 1.5em + 22px);padding:10px 14px;font-size:13.5px;line-height:1.5;border-radius:14px;resize:none;overflow-y:auto;font-family:var(--sans);display:block}
+.co-row{display:flex;gap:10px;align-items:stretch}
+.co-row .inp-lg{flex:1 1 auto;width:100%}
 
 /* ---------- jobs ---------- */
 .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:24px}
@@ -263,10 +271,18 @@ h2{margin:0;font-size:22px;font-weight:800;letter-spacing:-0.02em}
   h1{font-size:34px}
   .none-title{font-size:22px}
   .none-panel{padding:36px 20px}
-  .hdr-in{gap:14px}
-  .tab{padding:0 8px;font-size:13px}
+  .hdr .hdr-in{gap:14px;height:64px}
+  .tab,.hdr .tab{padding:0 8px;font-size:13px}
+  .inp-lg{height:54px;font-size:16px;padding:0 18px}
+  .btn-lg{padding:0 18px}
 }
-@media (max-width:520px){ .hdr-right{display:none} }
+@media (max-width:520px){
+  .hdr-right{display:none}
+  .hdr .hdr-in{gap:10px}
+  .mark{font-size:16px;gap:8px}
+  .hdr .tabs{gap:0}
+  .hdr .tab{padding:0 7px;font-size:12.5px}
+}
 @media (prefers-reduced-motion:reduce){
   .cursor{animation:none}
   .term-bar{transition:none}

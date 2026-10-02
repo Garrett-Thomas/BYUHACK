@@ -17,12 +17,12 @@ export default function CompanyScreen({ companyJobs, data, onSearch, onOpen }: P
       <p className="sub" style={{ margin: '8px 0 24px' }}>
         No posted listing? We'll find people at the company and draft general referral asks plus an email to their recruiting team.
       </p>
-      <div style={{ display: 'flex', gap: 10 }}>
+      <div className="co-row">
         <input className="inp inp-lg" id="co-input" type="text" value={name}
           placeholder="Company name, e.g. Linear" aria-label="Company name"
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onSearch(name); } }} />
-        <button className="btn btn-accent-sm" type="button" style={{ padding: '0 18px', fontWeight: 500 }}
+        <button className="btn btn-accent-sm btn-lg" type="button" style={{ fontWeight: 500 }}
           onClick={() => onSearch(name)}>Find people</button>
       </div>
       {companyJobs.length > 0 && (
