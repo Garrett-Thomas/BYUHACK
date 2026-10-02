@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import type { Branch, Contact, Email, Job, JobData, Profile, Screen } from '../types';
-import { jobMeta, linkedInPeopleUrl } from '../lib/format';
+import { jobMeta, linkedInCompanySearchUrl, linkedInPeopleUrl } from '../lib/format';
 import { useConnectionPoll } from '../hooks/useConnectionPoll';
+import { useCompanyScope } from '../hooks/useCompanyScope';
 import NonePanel from './NonePanel';
+import FindCompany from './FindCompany';
 import CollectingPanel from './CollectingPanel';
 import DonePanel from './DonePanel';
 
@@ -20,9 +23,13 @@ interface Props {
 }
 
 export default function JobDetailScreen({ job, d, prevScreen, profile, go, onCollect, onRetry, onFind, onSync, onContact, onEmail }: Props) {
-  const { polling, start } = useConnectionPoll(job.id, onSync);
+  const { scope, refresh, clear } = useCompanyScope(job.company);
+  // Each tick also re-fetches the scope, so it shows up once the user saves it in LinkedIn.
+  const { polling, start } = useConnectionPoll(job.id, () => { onSync(); refresh(); });
+  const [changeFailed, setChangeFailed] = useState(false);
   // The link itself still opens in a new tab; this just starts watching for new people.
   const find = () => { onFind(); start(); };
+  const change = () => { setChangeFailed(false); clear().then((ok) => setChangeFailed(!ok)); };
   return (
     <>
       <button className="btn btn-back" type="button" onClick={() => go(prevScreen)}>
@@ -36,23 +43,38 @@ export default function JobDetailScreen({ job, d, prevScreen, profile, go, onCol
             <span>{job.location}</span>
             <span className="mono" style={{ fontSize: 12, color: 'var(--ink-3)' }}>{jobMeta(job)}</span>
           </div>
+          {scope && (
+            <div style={{ marginTop: 8, fontSize: 12, color: 'var(--ink-3)' }}>
+              {'LinkedIn company: ' + (scope.linkedinName ?? scope.linkedinSlug ?? job.company) + ' · '}
+              <button className="btn-text" type="button" onClick={change}>change</button>
+              {changeFailed && ' (couldn\'t reach the Warmline server)'}
+            </div>
+          )}
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {d?.status === 'done' && (
             <button className="btn btn-ghost" type="button" onClick={onCollect}>Re-run search</button>
           )}
-          <a className="btn btn-ghost" href={linkedInPeopleUrl(job.company)} target="_blank" rel="noopener"
-            onClick={find}>
-            Find people on LinkedIn ↗
-          </a>
+          {scope === null && (
+            <a className="btn btn-ghost" href={linkedInCompanySearchUrl(job.company)} target="_blank" rel="noopener"
+              onClick={find}>
+              {'Find ' + job.company + ' on LinkedIn ↗'}
+            </a>
+          )}
+          {scope && (
+            <a className="btn btn-ghost" href={linkedInPeopleUrl(job.company, 'F', scope.linkedinIds)} target="_blank"
+              rel="noopener" onClick={find}>
+              Find people on LinkedIn ↗
+            </a>
+          )}
           {job.hasListing && job.url && (
             <a className="btn btn-solid" href={job.url} target="_blank" rel="noopener">Open application ↗</a>
           )}
         </div>
       </div>
-      {!d ? <NonePanel job={job} onCollect={onCollect} />
+      {!d ? <NonePanel job={job} onCollect={onCollect}>{scope === null && <FindCompany job={job} onFind={find} />}</NonePanel>
         : d.status === 'collecting' ? <CollectingPanel log={d.log} contacts={d.contacts} />
-        : <DonePanel job={job} d={d} profile={profile} polling={polling} onFind={find}
+        : <DonePanel job={job} d={d} profile={profile} scope={scope} polling={polling} onFind={find}
             onRetry={onRetry} onContact={onContact} onEmail={onEmail} />}
     </>
   );

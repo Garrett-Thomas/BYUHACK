@@ -3,6 +3,7 @@ import express from "express";
 import type { NextFunction, Request, Response } from "express";
 import type { DatabaseSync } from "node:sqlite";
 import swaggerUi from "swagger-ui-express";
+import { companyScopesRouter } from "./companyScopes/routes.js";
 import { connectionsRouter } from "./connections/routes.js";
 import { draftEmail } from "./draftEmail.js";
 import { findContact } from "./findContact.js";
@@ -44,6 +45,7 @@ export function createApp(db: DatabaseSync) {
   app.use("/docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));
 
   app.use("/api/v1", connectionsRouter(db));
+  app.use("/api/v1", companyScopesRouter(db));
 
   app.post("/api/find-contact", async (req: Request, res: Response) => {
     const start = Date.now();

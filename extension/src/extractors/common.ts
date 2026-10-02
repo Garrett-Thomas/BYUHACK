@@ -32,3 +32,34 @@ export function profileUrlFrom(href: string | null | undefined, base = 'https://
     return null;
   }
 }
+
+/** LinkedIn company ids come as a JSON array of digit strings in the `currentCompany` param. */
+export const MAX_COMPANY_IDS = 50;
+const COMPANY_ID = /^\d{1,15}$/;
+
+export function isCompanyId(s: unknown): s is string {
+  return typeof s === 'string' && COMPANY_ID.test(s);
+}
+
+/**
+ * Parse a `currentCompany` value like `["1441","16140"]` into de-duplicated digit-string ids.
+ * Anything unusable (not JSON, not an array, empty, over 50 ids, or any entry that is not
+ * 1-15 digits) gives [] so a malformed scope is never half-applied.
+ */
+export function parseCompanyIds(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  let value: unknown;
+  try {
+    value = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(value) || value.length === 0 || value.length > MAX_COMPANY_IDS) return [];
+  const out: string[] = [];
+  for (const entry of value) {
+    const id = typeof entry === 'number' && Number.isSafeInteger(entry) && entry >= 0 ? String(entry) : entry;
+    if (!isCompanyId(id)) return [];
+    if (!out.includes(id)) out.push(id);
+  }
+  return out;
+}

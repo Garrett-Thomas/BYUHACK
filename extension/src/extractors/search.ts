@@ -30,14 +30,14 @@ function stripDegree(s: string): string {
 }
 
 /**
- * Degree from the name line ("Name • 2nd"), read before the marker is stripped. Only 1st and 2nd
- * are returned; "3rd" / "3rd+" and anything unparseable give null, and those cards are dropped.
+ * Degree from the name line ("Name • 2nd"), read before the marker is stripped. "3rd" and "3rd+"
+ * are both returned as "3rd"; anything unparseable gives null and that card is dropped.
  */
 function degreeOf(anchor: Element): Degree | null {
   const line = anchor.closest('p, .entity-result__title-text') ?? anchor;
   const m = /[•·]\s*(1st|2nd|3rd)\+?(?![a-z0-9])/i.exec(textOf(line));
   const d = m?.[1]?.toLowerCase();
-  return d === '1st' || d === '2nd' ? d : null;
+  return d === '1st' || d === '2nd' || d === '3rd' ? d : null;
 }
 
 function subtitles(anchor: Element, card: Element): { headline: string; location: string } {

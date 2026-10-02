@@ -45,4 +45,18 @@ export const migrations: Migration[] = [
       ALTER TABLE connections ADD COLUMN degree TEXT;
     `,
   },
+  {
+    version: 3,
+    name: "company_scopes",
+    sql: `
+      CREATE TABLE company_scopes (
+        normalized_company TEXT PRIMARY KEY,
+        company TEXT NOT NULL,
+        linkedin_slug TEXT,
+        linkedin_name TEXT,
+        linkedin_ids TEXT NOT NULL,
+        resolved_at TEXT NOT NULL
+      );
+    `,
+  },
 ];

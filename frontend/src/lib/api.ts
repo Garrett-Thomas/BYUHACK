@@ -32,6 +32,14 @@ export interface ConnectionsPage {
   pagination: { limit: number; offset: number; total: number };
 }
 
+export interface CompanyScope {
+  company: string;
+  linkedinSlug: string | null;
+  linkedinName: string | null;
+  linkedinIds: string[];
+  resolvedAt: string;
+}
+
 export interface JobInfo { company: string; role: string; location: string; term: string }
 export interface FoundContact { email?: string; label?: string }
 export interface DraftInfo extends JobInfo, Profile { email: string; label: string }
@@ -58,5 +66,18 @@ const post = <T>(url: string, info: object) => request<T>(url, {
 
 export const getConnections = (company: string) =>
   request<ConnectionsPage>('/api/v1/companies/' + encodeURIComponent(company) + '/connections?limit=100');
+const scopeUrl = (company: string) => '/api/v1/company-scopes/' + encodeURIComponent(company);
+
+// 404 means no scope saved yet.
+export const getCompanyScope = (company: string) =>
+  request<CompanyScope>(scopeUrl(company)).catch((e: unknown) => {
+    if (e instanceof ApiError && e.status === 404) return null;
+    throw e;
+  });
+// 404 means it was already gone, which is what the caller wanted.
+export const deleteCompanyScope = (company: string) =>
+  request<null>(scopeUrl(company), { method: 'DELETE' }).then(() => {}, (e: unknown) => {
+    if (!(e instanceof ApiError && e.status === 404)) throw e;
+  });
 export const findContact = (info: JobInfo) => post<FoundContact>('/api/find-contact', info);
 export const draftEmail = (info: DraftInfo) => post<Draft>('/api/draft-email', info);

@@ -21,6 +21,7 @@ export interface Contact {
   profileUrl: string;
   status: ContactStatus;
   text: string;
+  updatedAt: string;
 }
 
 export interface Email {

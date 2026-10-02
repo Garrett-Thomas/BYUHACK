@@ -90,6 +90,14 @@ describe("POST /api/v1/connections", () => {
     expect(d.body.connection.degree).toBeNull();
   });
 
+  it("accepts 3rd degree", async () => {
+    const a = await post(body({ sourceProfileUrl: "https://www.linkedin.com/in/third-degree/", degree: "3rd" }));
+    expect(a.status).toBe(201);
+    expect(a.body.connection.degree).toBe("3rd");
+    const got = await request(app).get(`/api/v1/connections/${a.body.id}`);
+    expect(got.body.degree).toBe("3rd");
+  });
+
   it("422 for an invalid degree", async () => {
     const a = await post(body({ degree: "4th" }));
     expect(a.status).toBe(422);
@@ -228,7 +236,7 @@ describe("migrations", () => {
       };
       expect(row).toEqual({ name: "Old Timer", degree: null });
       const versions = upgraded.prepare("SELECT version FROM schema_migrations ORDER BY version").all();
-      expect(versions.map((v) => Number(v.version))).toEqual([1, 2]);
+      expect(versions.map((v) => Number(v.version))).toEqual([1, 2, 3]);
       upgraded.close();
 
       const again = openDb(path);
@@ -237,6 +245,168 @@ describe("migrations", () => {
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe("migration 3", () => {
+  it("applies to an existing v2 database with rows and keeps them", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "warmline-"));
+    try {
+      const path = join(dir, "v2.db");
+      const old = new DatabaseSync(path);
+      old.exec("CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at TEXT NOT NULL)");
+      for (const m of migrations.filter((m) => m.version <= 2)) {
+        old.exec(m.sql);
+        old
+          .prepare("INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)")
+          .run(m.version, m.name, "2026-10-01T00:00:00.000Z");
+      }
+      old
+        .prepare(
+          `INSERT INTO connections (id, source, source_profile_url, normalized_profile_url, name, company, normalized_company,
+             degree, captured_at, extractor_version, created_at, updated_at)
+           VALUES ('v2-1', 'linkedin', 'https://www.linkedin.com/in/v2-person/', 'https://www.linkedin.com/in/v2-person/',
+             'V2 Person', 'Stripe', 'stripe', '2nd', '2026-10-01T00:00:00.000Z', '1.1.0', '2026-10-01T00:00:00.000Z', '2026-10-01T00:00:00.000Z')`,
+        )
+        .run();
+      old.prepare("INSERT INTO connection_tags (connection_id, tag) VALUES ('v2-1', 'eng')").run();
+      old.close();
+
+      const upgraded = openDb(path);
+      expect(upgraded.prepare("SELECT name, degree FROM connections WHERE id = 'v2-1'").get()).toEqual({
+        name: "V2 Person",
+        degree: "2nd",
+      });
+      expect(upgraded.prepare("SELECT tag FROM connection_tags WHERE connection_id = 'v2-1'").all()).toEqual([{ tag: "eng" }]);
+      expect(upgraded.prepare("SELECT COUNT(*) AS n FROM company_scopes").get()).toEqual({ n: 0 });
+      expect(upgraded.prepare("SELECT version FROM schema_migrations ORDER BY version").all().map((v) => Number(v.version))).toEqual([
+        1, 2, 3,
+      ]);
+
+      const put = await request(createApp(upgraded))
+        .put("/api/v1/company-scopes/Stripe")
+        .send({ linkedinIds: ["2135371"] });
+      expect(put.status).toBe(200);
+      upgraded.close();
+
+      const again = openDb(path);
+      expect(again.prepare("SELECT COUNT(*) AS n FROM connections").get()).toEqual({ n: 1 });
+      expect(again.prepare("SELECT COUNT(*) AS n FROM company_scopes").get()).toEqual({ n: 1 });
+      again.close();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("company scopes", () => {
+  const scopeBody = (over: Record<string, unknown> = {}) => ({
+    linkedinSlug: "stripe",
+    linkedinName: "Stripe",
+    linkedinIds: ["2135371"],
+    ...over,
+  });
+  const put = (company: string, b: unknown) =>
+    request(app).put(`/api/v1/company-scopes/${encodeURIComponent(company)}`).send(b as object);
+  const get = (company: string) => request(app).get(`/api/v1/company-scopes/${encodeURIComponent(company)}`);
+
+  it("round-trips PUT/GET and replaces on a second PUT", async () => {
+    const a = await put("Stripe", scopeBody({ linkedinIds: ["1441", "16140"] }));
+    expect(a.status).toBe(200);
+    expect(a.body).toEqual({
+      company: "Stripe",
+      linkedinSlug: "stripe",
+      linkedinName: "Stripe",
+      linkedinIds: ["1441", "16140"],
+      resolvedAt: expect.any(String),
+    });
+    expect(new Date(a.body.resolvedAt).toISOString()).toBe(a.body.resolvedAt);
+
+    const got = await get("Stripe");
+    expect(got.status).toBe(200);
+    expect(got.body).toEqual(a.body);
+
+    const b = await put("Stripe", { linkedinIds: ["999"] });
+    expect(b.status).toBe(200);
+    expect(b.body.linkedinSlug).toBeNull();
+    expect(b.body.linkedinName).toBeNull();
+    expect(b.body.linkedinIds).toEqual(["999"]);
+    expect((await get("Stripe")).body.linkedinIds).toEqual(["999"]);
+  });
+
+  it("stores slug/name as null when null or blank", async () => {
+    const a = await put("Acme", { linkedinSlug: null, linkedinName: "  ", linkedinIds: ["1"] });
+    expect(a.status).toBe(200);
+    expect(a.body.linkedinSlug).toBeNull();
+    expect(a.body.linkedinName).toBeNull();
+  });
+
+  it("422 with details for invalid bodies", async () => {
+    const bad = [
+      {},
+      scopeBody({ linkedinIds: [] }),
+      scopeBody({ linkedinIds: ["abc"] }),
+      scopeBody({ linkedinIds: ["1234567890123456"] }),
+      scopeBody({ linkedinIds: [""] }),
+      scopeBody({ linkedinIds: [123] }),
+      scopeBody({ linkedinIds: "123" }),
+      scopeBody({ linkedinIds: Array.from({ length: 51 }, (_, i) => String(i + 1)) }),
+      scopeBody({ linkedinSlug: 5 }),
+    ];
+    for (const b of bad) {
+      const r = await put("Stripe", b);
+      expect(r.status, JSON.stringify(b)).toBe(422);
+      expect(r.body.details.length).toBeGreaterThan(0);
+    }
+    expect((await put("Stripe", scopeBody({ linkedinIds: [] }))).body.details[0].path).toBe("linkedinIds");
+    expect((await get("Stripe")).status).toBe(404);
+    // boundaries are accepted
+    expect((await put("Stripe", scopeBody({ linkedinIds: ["1", "123456789012345"] }))).status).toBe(200);
+    const fifty = Array.from({ length: 50 }, (_, i) => String(i + 1));
+    expect((await put("Stripe", scopeBody({ linkedinIds: fifty }))).body.linkedinIds).toHaveLength(50);
+  });
+
+  it("400 for malformed JSON and blank company", async () => {
+    const r = await request(app)
+      .put("/api/v1/company-scopes/Stripe")
+      .set("Content-Type", "application/json")
+      .send("{nope");
+    expect(r.status).toBe(400);
+    expect((await put("   ", scopeBody())).status).toBe(400);
+    expect((await get("   ")).status).toBe(400);
+  });
+
+  it("404 then 204 on delete", async () => {
+    expect((await get("Stripe")).status).toBe(404);
+    expect((await request(app).delete("/api/v1/company-scopes/Stripe")).status).toBe(404);
+    await put("Stripe", scopeBody());
+    expect((await request(app).delete("/api/v1/company-scopes/Stripe")).status).toBe(204);
+    expect((await get("Stripe")).status).toBe(404);
+    expect((await request(app).delete("/api/v1/company-scopes/Stripe")).status).toBe(404);
+  });
+
+  it("normalizes the company so variants share one row", async () => {
+    await put("Stripe, Inc.", scopeBody({ linkedinIds: ["1"] }));
+    const got = await get("stripe");
+    expect(got.status).toBe(200);
+    expect(got.body.company).toBe("Stripe, Inc.");
+    expect((await get("  STRIPE   LLC ")).status).toBe(200);
+
+    await put("stripe", scopeBody({ linkedinIds: ["2"] }));
+    expect(db.prepare("SELECT COUNT(*) AS n FROM company_scopes").get()).toEqual({ n: 1 });
+    const after = await get("Stripe, Inc.");
+    expect(after.body.linkedinIds).toEqual(["2"]);
+    expect(after.body.company).toBe("stripe");
+
+    expect((await request(app).delete(`/api/v1/company-scopes/${encodeURIComponent("STRIPE, Inc")}`)).status).toBe(204);
+    expect((await get("stripe")).status).toBe(404);
+  });
+
+  it("URL-decodes the company path segment", async () => {
+    await put("Johnson & Johnson", scopeBody({ linkedinIds: ["1"] }));
+    const r = await request(app).get("/api/v1/company-scopes/Johnson%20%26%20Johnson");
+    expect(r.status).toBe(200);
+    expect(r.body.company).toBe("Johnson & Johnson");
   });
 });
 
@@ -255,6 +425,7 @@ describe("misc", () => {
         "/api/draft-email",
         "/api/find-contact",
         "/api/v1/companies/{company}/connections",
+        "/api/v1/company-scopes/{company}",
         "/api/v1/connections",
         "/api/v1/connections/{id}",
         "/health",

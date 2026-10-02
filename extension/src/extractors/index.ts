@@ -1,7 +1,8 @@
 import type { CapturedPerson } from '../types';
+import { companyNameFrom, parseEmployeesLinkIds } from './company';
 import { extractSearchResults } from './search';
 
-export { extractSearchResults };
+export { companyNameFrom, extractSearchResults, parseEmployeesLinkIds };
 
 export type PageKind = 'search' | null;
 

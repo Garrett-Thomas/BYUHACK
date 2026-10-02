@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<!-- SYNTHETIC FIXTURE. Shaped like a LinkedIn company page; every name, id, URL and image is fake.
+     No scripts/styles/tracking. The employees link is the only currentCompany link inside <main>.
+     Everything else that looks like a company id (urn:li:company:N, fsd_company:N, links outside
+     <main>) is a decoy that must be ignored. -->
+<html lang="en">
+<head><meta charset="utf-8"><title>(3) Example Corp | LinkedIn</title></head>
+<body data-color-scheme="light">
+<header>
+  <a href="https://www.linkedin.com/search/results/people/?currentCompany=%5B%22900090%22%5D&amp;origin=GLOBAL_SEARCH_HEADER">Decoy header link outside main</a>
+</header>
+<main>
+  <section data-component="top-card" data-entity-urn="urn:li:fsd_company:900011">
+    <figure><img alt="Example Corp logo" src="https://example.com/img/logo.png"></figure>
+    <h1>Example Corp <span role="img" aria-label="Verified"><svg><path d="M0 0"></path></svg></span></h1>
+    <p>Software Development &middot; Exampleville, Testland</p>
+    <a href="https://www.linkedin.com/search/results/people/?currentCompany=%5B%22900001%22%2C%22900002%22%2C%22900003%22%5D&amp;origin=COMPANY_PAGE_CANNED_SEARCH&amp;schoolFilter=false">1K+ employees</a>
+    <a href="/company/example-corp/about/">About</a>
+    <a href="/company/example-corp/people/">People</a>
+  </section>
+  <section data-component="similar-pages">
+    <a href="/company/decoy-one/" data-entity-urn="urn:li:company:900012">Decoy One</a>
+    <a href="/company/decoy-two/" data-entity-urn="urn:li:fsd_company:900013">Decoy Two</a>
+    <code>{"companyUrn":"urn:li:company:900014","included":["urn:li:fsd_company:900015"]}</code>
+  </section>
+</main>
+<aside>
+  <a href="/company/decoy-three/" data-entity-urn="urn:li:company:900016">Decoy Three</a>
+  <a href="https://www.linkedin.com/search/results/people/?currentCompany=%5B%22900091%22%5D">Decoy aside link outside main</a>
+</aside>
+</body>
+</html>

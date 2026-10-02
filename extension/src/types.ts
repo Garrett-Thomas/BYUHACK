@@ -1,7 +1,7 @@
-export const EXTRACTOR_VERSION = '1.1.0';
+export const EXTRACTOR_VERSION = '1.2.0';
 
-/** Network distance kept from a search result. 3rd-degree and "LinkedIn Member" results are never sent. */
-export type Degree = '1st' | '2nd';
+/** Network distance kept from a search result ("3rd+" is stored as "3rd"). "LinkedIn Member" results are never sent. */
+export type Degree = '1st' | '2nd' | '3rd';
 
 /** Body of POST /api/v1/connections (see connections-finder/spec.md). */
 export interface ConnectionInput {
@@ -21,13 +21,27 @@ export interface ConnectionInput {
 /** What the extractor reads off a results card. The company comes from the tab registration, not the card. */
 export type CapturedPerson = Omit<ConnectionInput, 'company'>;
 
-/** A tab opened from a Warmline link. Kept in chrome.storage.session, keyed by tab id. */
-export interface Registration {
-  company: string;
-  keywords: string;
-  /** Epoch milliseconds. */
-  registeredAt: number;
-}
+/**
+ * A tab opened from a Warmline link. Kept in chrome.storage.session, keyed by tab id.
+ * Company mode: the user is picking the LinkedIn company page; nothing is captured.
+ * People mode: a company-scoped people search; people are captured when the URL's `currentCompany`
+ * set equals `ids`.
+ */
+export type Registration =
+  | {
+      mode: 'company';
+      company: string;
+      /** Epoch milliseconds. */
+      registeredAt: number;
+    }
+  | {
+      mode: 'people';
+      company: string;
+      /** LinkedIn company ids (digit strings) that the people search is scoped to. */
+      ids: string[];
+      /** Epoch milliseconds. */
+      registeredAt: number;
+    };
 
 export interface Settings {
   serverUrl: string;
@@ -48,14 +62,28 @@ export interface QueueItem {
 }
 
 export type Message =
-  | { type: 'register'; company: string; keywords: string }
-  | { type: 'shouldCapture'; keywords: string }
-  | { type: 'capture'; visitId: string; keywords: string; record: CapturedPerson }
+  | { type: 'register'; url: string }
+  | { type: 'shouldCapture'; url: string }
+  | { type: 'companyPage'; url: string }
+  | { type: 'saveCompany'; slug: string; linkedinName: string; ids: string[] }
+  | { type: 'capture'; visitId: string; url: string; record: CapturedPerson }
   | { type: 'retryNow' }
   | { type: 'clearQueue' };
 
 export interface ShouldCaptureResponse {
   company: string | null;
+}
+
+/** The Warmline company to show the Save button for, or null when this tab/page should not show it. */
+export interface CompanyPageResponse {
+  company: string | null;
+}
+
+/** On success the tab is already registered in people mode; the content script then navigates. */
+export interface SaveCompanyResponse {
+  ok: boolean;
+  company?: string;
+  ids?: string[];
 }
 
 export interface Status {

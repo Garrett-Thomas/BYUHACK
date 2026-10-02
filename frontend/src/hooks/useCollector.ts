@@ -16,16 +16,22 @@ const errMsg = (e: unknown) => (e instanceof ApiError ? e.message : 'Something w
 const toContact = (c: ApiConnection, job: Job, p: Profile): Contact => ({
   id: c.id, name: c.name, title: c.headline ?? '', degree: c.degree ?? 'Saved',
   reason: c.notes ?? c.location ?? '', profileUrl: c.sourceProfileUrl,
-  status: 'Not sent', text: draftNote({ name: c.name }, job, p),
+  status: 'Not sent', text: draftNote({ name: c.name, degree: c.degree ?? 'Saved' }, job, p),
+  updatedAt: c.updatedAt,
 });
 
 // Merge by id: append new people; existing ones keep their note text and status
-// but take the refreshed name, title and degree.
-const mergeContacts = (cur: Contact[], next: Contact[]): Contact[] => {
+// but take the refreshed name, title, degree and updatedAt. If the degree changed
+// and the note is still the untouched draft, it is redrafted for the new degree.
+const mergeContacts = (cur: Contact[], next: Contact[], job: Job, p: Profile): Contact[] => {
   const byId = new Map(next.map((c) => [c.id, c]));
   const have = new Set(cur.map((c) => c.id));
+  const refresh = (c: Contact, n: Contact): Contact => ({
+    ...c, name: n.name, title: n.title, degree: n.degree, updatedAt: n.updatedAt,
+    text: n.degree !== c.degree && c.text === draftNote(c, job, p) ? n.text : c.text,
+  });
   return [
-    ...cur.map((c) => { const n = byId.get(c.id); return n ? { ...c, name: n.name, title: n.title, degree: n.degree } : c; }),
+    ...cur.map((c) => { const n = byId.get(c.id); return n ? refresh(c, n) : c; }),
     ...next.filter((c) => !have.has(c.id)),
   ];
 };
@@ -144,8 +150,8 @@ export function useCollector(setData: SetData) {
     getConnections(job.company).then(({ data }) => {
       const next = data.map((c) => toContact(c, job, profile));
       patch(r, (d) => (d.status === 'done'
-        ? { ...d, contacts: mergeContacts(d.contacts, next), err: next.length ? { ...d.err, contacts: null } : d.err }
-        : { ...d, contacts: mergeContacts(d.contacts, next) }));
+        ? { ...d, contacts: mergeContacts(d.contacts, next, job, profile), err: next.length ? { ...d.err, contacts: null } : d.err }
+        : { ...d, contacts: mergeContacts(d.contacts, next, job, profile) }));
     }, () => {});
   }, [run]);
 

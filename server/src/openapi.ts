@@ -122,6 +122,48 @@ export const openApiDocument = {
         responses: { "204": { description: "Deleted" }, "404": err("Not found") },
       },
     },
+    "/api/v1/company-scopes/{company}": {
+      parameters: [
+        {
+          name: "company",
+          in: "path",
+          required: true,
+          description: "URL-decoded and normalized like connection company names, so \"Stripe, Inc.\" and \"stripe\" are the same scope.",
+          schema: { type: "string", example: "Stripe" },
+        },
+      ],
+      get: {
+        summary: "Get the saved LinkedIn company scope for a company",
+        responses: {
+          "200": {
+            description: "The scope",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/CompanyScope" } } },
+          },
+          "400": err("Blank company"),
+          "404": err("No scope saved for this company"),
+        },
+      },
+      put: {
+        summary: "Create or replace the LinkedIn company scope for a company",
+        requestBody: jsonBody("#/components/schemas/CompanyScopeInput"),
+        responses: {
+          "200": {
+            description: "The saved scope",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/CompanyScope" } } },
+          },
+          "400": err("Blank company or malformed JSON"),
+          "413": err("Body larger than 100kb"),
+          "422": {
+            description: "Body failed validation",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/ValidationError" } } },
+          },
+        },
+      },
+      delete: {
+        summary: "Delete the LinkedIn company scope for a company",
+        responses: { "204": { description: "Deleted" }, "400": err("Blank company"), "404": err("Not found") },
+      },
+    },
     "/api/find-contact": {
       post: {
         summary: "Find a public recruiting/HR email for a company and role (uses Claude + web search)",
@@ -230,6 +272,33 @@ export const openApiDocument = {
             required: ["limit", "offset", "total"],
             properties: { limit: { type: "integer" }, offset: { type: "integer" }, total: { type: "integer" } },
           },
+        },
+      },
+      CompanyScopeInput: {
+        type: "object",
+        required: ["linkedinIds"],
+        properties: {
+          linkedinSlug: { type: "string", nullable: true, example: "stripe" },
+          linkedinName: { type: "string", nullable: true, example: "Stripe" },
+          linkedinIds: {
+            type: "array",
+            minItems: 1,
+            maxItems: 50,
+            items: { type: "string", pattern: "^\\d{1,15}$" },
+            description: "LinkedIn Current-company filter IDs from the company page's employees link.",
+            example: ["2135371"],
+          },
+        },
+      },
+      CompanyScope: {
+        type: "object",
+        required: ["company", "linkedinSlug", "linkedinName", "linkedinIds", "resolvedAt"],
+        properties: {
+          company: { type: "string", example: "Stripe" },
+          linkedinSlug: { type: "string", nullable: true },
+          linkedinName: { type: "string", nullable: true },
+          linkedinIds: { type: "array", items: { type: "string" } },
+          resolvedAt: { type: "string", format: "date-time" },
         },
       },
       FindContactInput: contactBodySchema(["company", "role"]),

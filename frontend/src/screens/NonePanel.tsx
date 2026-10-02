@@ -1,11 +1,13 @@
+import type { ReactNode } from 'react';
 import type { Job } from '../types';
 
 interface Props {
   job: Job;
   onCollect: () => void;
+  children?: ReactNode;
 }
 
-export default function NonePanel({ job, onCollect }: Props) {
+export default function NonePanel({ job, onCollect, children }: Props) {
   return (
     <div className="none-panel">
       <div className="none-title">No connections collected yet</div>
@@ -19,6 +21,12 @@ export default function NonePanel({ job, onCollect }: Props) {
       <div className="eyebrow" style={{ textTransform: 'none', letterSpacing: 0 }}>
         takes about a minute
       </div>
+      {children && (
+        <div style={{ borderTop: '1px solid var(--hair)', paddingTop: 16, marginTop: 6, display: 'flex',
+          flexDirection: 'column', alignItems: 'center', gap: 12, color: 'var(--ink-3)', fontSize: 14 }}>
+          {children}
+        </div>
+      )}
     </div>
   );
 }
