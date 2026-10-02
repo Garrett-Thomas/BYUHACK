@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Build a self-hosted system that captures connection information a user can see on LinkedIn and stores it in a local SQLite database. The server exposes an API for ingesting connections and retrieving connections by company.
+Build a locally hosted system that captures connection information a user can see on LinkedIn and stores it in a local SQLite database. The server exposes an API for ingesting connections and retrieving connections by company.
 
 The system has three parts:
 
@@ -23,7 +23,7 @@ The system has three parts:
 LinkedIn page
   -> Chrome content script extracts fields
   -> Extension background worker sends structured data
-  -> Server API authenticates, validates, and upserts request
+  -> Server API validates and upserts request
   -> Database stores a normalized connection record
   -> API returns records filtered by company
 ```
@@ -38,7 +38,7 @@ Optional diagnostic support may send a **user-approved, size-limited HTML fragme
 
 ## User flow
 
-1. The user configures the server URL and ingestion token in the extension once.
+1. The user configures the local server URL in the extension once.
 2. The user visits a supported LinkedIn profile page.
 3. After the document is ready, the content script waits briefly for dynamic content, extracts available fields, and sends them to the background worker.
 4. The background worker submits the structured record to the server without opening a popup or requesting confirmation.
@@ -51,9 +51,9 @@ Optional diagnostic support may send a **user-approved, size-limited HTML fragme
 - Content script with page-specific extractors.
 - Content script starts capture automatically once per supported page visit. It must tolerate LinkedIn's dynamic rendering and use a short bounded wait/retry strategy.
 - Background service worker performs API calls, deduplicates page-visit events, and retries queued submissions.
-- Options page for server URL, ingestion token, enable/disable capture, and diagnostic-capture preference.
+- Options page for server URL, enable/disable capture, and diagnostic-capture preference.
 - Local queue in `chrome.storage` for failed submissions; expose queue status and a manual retry/clear control in options.
-- Never log tokens, full page contents, or sensitive server responses.
+- Never log full page contents or sensitive server responses.
 
 ## Connection data model
 
@@ -78,7 +78,6 @@ The database record also includes: internal ID, created and updated timestamps, 
 
 Use SQLite. The server owns the database file and applies versioned migrations on startup or through a migration command.
 
-- `api_tokens`: hashed extension ingestion tokens, name, creation date, last-used date, and revocation date.
 - `connections`: normalized captured fields, source URL, notes, timestamps, and optional tags.
 - `connection_tags` (or an equivalent relation): optional tags.
 - `capture_diagnostics` (optional): sanitized, controlled-access diagnostic fragments with an expiration timestamp.
@@ -87,12 +86,12 @@ Enforce a unique index on normalized `sourceProfileUrl`; repeated captures updat
 
 ## Server API and Swagger UI
 
-All API endpoints use JSON, validate input, and require HTTPS in production.
+All API endpoints use JSON and validate input. The server binds to `127.0.0.1` by default so the unauthenticated API is available only on the local machine. HTTPS is not required for loopback traffic.
 
 | Endpoint | Purpose |
 | --- | --- |
 | `GET /health` | Health check for deployment monitoring. |
-| `POST /api/v1/connections` | Authenticated extension ingestion; create or update a connection by profile URL. |
+| `POST /api/v1/connections` | Extension ingestion; create or update a connection by profile URL. |
 | `GET /api/v1/connections?company={company}` | Return connections whose company matches the required case-insensitive company query. Supports `limit` and `offset`. |
 | `GET /api/v1/companies/{company}/connections` | Equivalent company lookup endpoint for clients that prefer a path parameter. |
 | `GET /api/v1/connections/:id` | Retrieve one connection. |
@@ -100,18 +99,18 @@ All API endpoints use JSON, validate input, and require HTTPS in production.
 | `GET /docs` | Serve interactive Swagger UI. |
 | `GET /openapi.json` | Serve the OpenAPI 3 specification consumed by Swagger UI. |
 
-All `/api/v1/*` endpoints require `Authorization: Bearer <ingestionToken>` in the initial release. `/health`, `/docs`, and `/openapi.json` do not require a token. Capture requests include an idempotency key so retries cannot create duplicates.
+No API authentication tokens or credentials are used. Capture requests include an idempotency key so retries cannot create duplicates. Because the API is unauthenticated, deployments that change the default bind address must restrict network access themselves.
 
-Swagger UI at `/docs` must document request/response schemas, authentication, all status codes, and provide an **Authorize** control for bearer-token testing. It is the initial interface for testing and manually calling the API; no custom results dashboard is included.
+Swagger UI at `/docs` must document request/response schemas and all status codes. It is the initial interface for testing and manually calling the API; no custom results dashboard is included.
 
 ### Endpoint contracts
 
 `POST /api/v1/connections`
 
-- Headers: `Authorization: Bearer <ingestionToken>`, `Idempotency-Key: <UUID>`.
+- Header: `Idempotency-Key: <UUID>`.
 - Body: the connection data-model JSON above. `source`, `sourceProfileUrl`, `name`, `capturedAt`, and `extractorVersion` are required; other extracted fields may be `null` or omitted.
 - Returns `201 Created` with `{ "id": "...", "status": "created", "connection": { ... } }` for a new profile, or `200 OK` with `status: "updated"` for an existing normalized URL.
-- Returns `400` for invalid JSON, `401` for an invalid token, `413` for a body over the configured limit, and `422` for a schema-valid JSON body with missing/invalid fields.
+- Returns `400` for invalid JSON, `413` for a body over the configured limit, and `422` for a schema-valid JSON body with missing/invalid fields.
 
 `GET /api/v1/connections?company={company}&limit={limit}&offset={offset}`
 
@@ -128,19 +127,18 @@ Swagger UI at `/docs` must document request/response schemas, authentication, al
 
 ## Security, privacy, and operations
 
-- Store API tokens only as hashes.
-- Apply request-size limits, schema validation, rate limits, and CORS rules restricted to the extension and Swagger UI as appropriate.
+- Apply request-size limits, schema validation, and CORS rules restricted to the local extension origin and Swagger UI as appropriate.
 - Escape or sanitize stored text before returning or displaying it in Swagger examples/diagnostics.
 - Use database migrations, backups, and structured error logging without secrets or captured content.
-- Configure the server with environment variables for SQLite database path, ingestion-token bootstrap/configuration, allowed origins, and diagnostic retention days.
+- Configure the server with environment variables for SQLite database path, bind host/port, allowed origins, and diagnostic retention days. Default the bind host to `127.0.0.1`.
 - Provide a privacy policy/retention statement and deletion through the API.
 
 ## Initial acceptance criteria
 
 - The server starts with documented environment configuration and runs database migrations.
-- An operator can configure an ingestion token and the extension can use it.
+- The server and extension can communicate locally without an authentication token.
 - On a supported LinkedIn page, the extension automatically extracts and submits structured fields once per page visit without opening a popup.
-- A submission is authenticated, validated, idempotent, and stored in SQLite.
+- A submission is validated, idempotent, and stored in SQLite.
 - Duplicate profile URLs update the existing record predictably.
 - Failed submissions are queued locally and can be retried.
 - `GET /api/v1/connections?company=...` returns matching records with pagination.
