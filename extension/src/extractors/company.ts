@@ -2,16 +2,22 @@ import { clean, parseCompanyIds, textOf } from './common';
 
 const EMPLOYEES_LINK = 'main a[href*="currentCompany"]';
 
+// The link's own text must be an employee count ("201-500 employees", "10K+ employees"). Other
+// currentCompany links exist inside <main> too, e.g. "1 person from your school was hired here" on
+// company-search result cards, which can linger in the DOM after LinkedIn renders a company page in
+// place, and point at a different company.
+const EMPLOYEE_COUNT = /^[\d.,]+[KkMm]?\+?(\s*[-–]\s*[\d.,]+[KkMm]?\+?)?\s+employees?$/;
+
 /**
  * Pure: the LinkedIn company ids behind a company page's "N employees" link, or [] if the page has
- * none. Only `main a[href*="currentCompany"]` is read. The page also carries many unrelated
- * `urn:li:company:N` / `fsd_company:N` ids (sidebars, suggestions) and links outside <main>; those are
- * never used.
+ * none. Only `main a[href*="currentCompany"]` links whose text is an employee count are read. The
+ * page also carries many unrelated `urn:li:company:N` / `fsd_company:N` ids (sidebars, suggestions)
+ * and links outside <main>; those are never used.
  */
 export function parseEmployeesLinkIds(doc: Document): string[] {
   for (const a of Array.from(doc.querySelectorAll<HTMLAnchorElement>(EMPLOYEES_LINK))) {
     const href = a.getAttribute('href');
-    if (!href) continue;
+    if (!href || !EMPLOYEE_COUNT.test(textOf(a))) continue;
     let ids: string[];
     try {
       ids = parseCompanyIds(new URL(href, 'https://www.linkedin.com/').searchParams.get('currentCompany'));

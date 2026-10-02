@@ -228,6 +228,25 @@ describe('extractForPage routing', () => {
 describe('parseEmployeesLinkIds', () => {
   const doc = load('company-page.html');
 
+  it('ignores other currentCompany links in main, like a leftover search card', () => {
+    // After LinkedIn renders a company page in place, a company-search card's
+    // "1 person from your school was hired here" link (another company's id) can remain in <main>.
+    const d = new DOMParser().parseFromString(
+      '<main><a href="/search/results/people/?currentCompany=%5B%22900500%22%5D">1 person from your school was hired here</a>' +
+      '<a href="/search/results/people/?currentCompany=%5B%22900501%22%2C%22900502%22%5D">201-500 employees</a></main>', 'text/html');
+    expect(parseEmployeesLinkIds(d)).toEqual(['900501', '900502']);
+    const onlyDecoy = new DOMParser().parseFromString(
+      '<main><a href="/search/results/people/?currentCompany=%5B%22900500%22%5D">1 person from your school was hired here</a></main>', 'text/html');
+    expect(parseEmployeesLinkIds(onlyDecoy)).toEqual([]);
+  });
+
+  it('accepts the employee-count formats LinkedIn uses', () => {
+    for (const text of ['10K+ employees', '501-1K employees', '201–500 employees', '2 employees', '1 employee']) {
+      const d = new DOMParser().parseFromString(`<main><a href="/x?currentCompany=%5B%22900600%22%5D">${text}</a></main>`, 'text/html');
+      expect(parseEmployeesLinkIds(d), text).toEqual(['900600']);
+    }
+  });
+
   it('reads the ids from the employees link inside main', () => {
     expect(parseEmployeesLinkIds(doc)).toEqual(['900001', '900002', '900003']);
   });
@@ -251,7 +270,7 @@ describe('parseEmployeesLinkIds', () => {
 
   it('accepts unencoded and relative hrefs and de-duplicates ids', () => {
     const d = new DOMParser().parseFromString(
-      `<main><a href='/search/results/people/?currentCompany=["1","1","22"]'>x</a></main>`,
+      `<main><a href='/search/results/people/?currentCompany=["1","1","22"]'>11-50 employees</a></main>`,
       'text/html',
     );
     expect(parseEmployeesLinkIds(d)).toEqual(['1', '22']);
@@ -260,10 +279,10 @@ describe('parseEmployeesLinkIds', () => {
   it('skips a link with an unusable value and uses the next one', () => {
     const d = new DOMParser().parseFromString(
       `<main>
-         <a href="/search/results/people/?currentCompany=%5B%22abc%22%5D">bad</a>
-         <a href="/search/results/people/?currentCompany=not-json">bad</a>
-         <a href="/search/results/people/?currentCompany=%5B%5D">empty</a>
-         <a href="/search/results/people/?currentCompany=%5B%22777%22%5D">good</a>
+         <a href="/search/results/people/?currentCompany=%5B%22abc%22%5D">1K+ employees</a>
+         <a href="/search/results/people/?currentCompany=not-json">1K+ employees</a>
+         <a href="/search/results/people/?currentCompany=%5B%5D">1K+ employees</a>
+         <a href="/search/results/people/?currentCompany=%5B%22777%22%5D">1K+ employees</a>
        </main>`,
       'text/html',
     );
