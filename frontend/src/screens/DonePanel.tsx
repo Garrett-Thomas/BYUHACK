@@ -4,6 +4,7 @@ import type { CompanyScope } from '../lib/api';
 import { linkedInPeopleUrl } from '../lib/format';
 import { profileKey } from '../lib/drafting';
 import Tabs from '../components/Tabs';
+import Spinner from '../components/Spinner';
 import ContactCard from './ContactCard';
 import PairRow from './PairRow';
 import FindCompany from './FindCompany';
@@ -118,7 +119,11 @@ export default function DonePanel({ job, d, profile, scope, polling, onFind, onR
         <section {...panel('email')}>
           <h2 style={{ marginBottom: 12 }}>Email to hiring team</h2>
           <div className="empty-rows">
-            {email === 'idle' && !err.email && !busy.email ? (
+            {busy.email ? (
+              // A redraft reuses the address already found, so it runs no web search.
+              <Spinner label={email && email !== 'idle' ? 'Redrafting the email…'
+                : 'Searching the web for a recruiting email at ' + job.company + '…'} />
+            ) : email === 'idle' && !err.email ? (
               <>
                 <div>{'Search the web for a recruiting email at ' + job.company + ' and draft a note to them.'}</div>
                 <button className="btn btn-solid" type="button" onClick={() => onRetry('email')}>
@@ -127,8 +132,7 @@ export default function DonePanel({ job, d, profile, scope, polling, onFind, onR
               </>
             ) : (
               <>
-                <div>{busy.email ? 'Searching for a recruiting email…'
-                  : err.email ? "Couldn't find or draft an email: " + err.email
+                <div>{err.email ? "Couldn't find or draft an email: " + err.email
                   : 'No public recruiting email found for ' + job.company}</div>
                 {retryBtn('email')}
               </>

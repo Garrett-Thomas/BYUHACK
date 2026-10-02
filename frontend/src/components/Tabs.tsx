@@ -20,15 +20,15 @@ export default function Tabs<T extends string>({ id, tabs, value, onChange }: Pr
   };
 
   return (
-    <div className="tabs" role="tablist" id={id} onKeyDown={onKeyDown}>
+    <div className="ptabs" role="tablist" id={id} onKeyDown={onKeyDown}>
       {tabs.map((t) => {
         const on = t.value === value;
         return (
-          <button key={t.value} id={id + '-' + t.value + '-tab'} className={'tab' + (on ? ' on' : '')}
+          <button key={t.value} id={id + '-' + t.value + '-tab'} className={'ptab' + (on ? ' on' : '')}
             type="button" role="tab" aria-selected={on} aria-controls={id + '-' + t.value}
             tabIndex={on ? 0 : -1} onClick={() => onChange(t.value)}>
             {t.label}
-            {t.count !== undefined && <span className="tab-count">{t.count}</span>}
+            {t.count !== undefined && <span className="ptab-count">{t.count}</span>}
           </button>
         );
       })}

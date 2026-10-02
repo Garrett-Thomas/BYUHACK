@@ -15,7 +15,10 @@ export default function Header({ screen, prevScreen, name, go }: Props) {
   return (
     <header className="hdr">
       <div className="wrap hdr-in">
-        <div className="mark"><Logo size={24} /><span>Top of the Stack</span></div>
+        <button className="mark" type="button" onClick={() => go('jobs')}
+          title="Back to all jobs">
+          <Logo size={24} /><span>Top of the Stack</span>
+        </button>
         <nav className="tabs" id="tabs" aria-label="Sections">
           {TABS.map(([label, key]) => (
             <button key={key} className={'tab' + (active(key) ? ' on' : '')}
