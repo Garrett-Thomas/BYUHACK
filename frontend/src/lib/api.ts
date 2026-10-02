@@ -46,6 +46,7 @@ export interface JobInfo { company: string; role: string; location: string; term
 export interface FoundContact { email?: string; label?: string }
 export interface DraftInfo extends JobInfo, Profile { email: string; label: string }
 export interface Draft { subject: string; body: string }
+export interface RewriteInfo { text: string; instruction: string; profile: Profile; maxChars?: number }
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   let res: Response;
@@ -83,3 +84,4 @@ export const deleteCompanyScope = (company: string) =>
   });
 export const findContact = (info: JobInfo) => post<FoundContact>('/api/find-contact', info);
 export const draftEmail = (info: DraftInfo) => post<Draft>('/api/draft-email', info);
+export const rewriteMessage = (info: RewriteInfo) => post<{ text: string }>('/api/rewrite', info);

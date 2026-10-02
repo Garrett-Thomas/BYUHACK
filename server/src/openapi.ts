@@ -194,6 +194,21 @@ export const openApiDocument = {
         },
       },
     },
+    "/api/rewrite": {
+      post: {
+        summary: "Rewrite an outreach message following an instruction (uses Claude)",
+        requestBody: jsonBody("#/components/schemas/RewriteInput"),
+        responses: {
+          "200": {
+            description: "The rewritten message",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/RewriteResult" } } },
+          },
+          "400": err("Invalid body"),
+          "413": err("Body larger than 100kb"),
+          "502": err("Upstream rewrite failed"),
+        },
+      },
+    },
   },
   components: {
     schemas: {
@@ -339,6 +354,31 @@ export const openApiDocument = {
         type: "object",
         required: ["subject", "body"],
         properties: { subject: { type: "string" }, body: { type: "string" } },
+      },
+      RewriteInput: {
+        type: "object",
+        required: ["text", "instruction", "profile"],
+        properties: {
+          text: { type: "string", minLength: 1, maxLength: 10000, description: "The message to rewrite." },
+          instruction: { type: "string", minLength: 1, maxLength: 500, example: "Make it shorter" },
+          profile: {
+            type: "object",
+            required: ["name", "school", "highlight", "resume"],
+            description: "The sender's profile; fields may be empty strings.",
+            properties: {
+              name: { type: "string" },
+              school: { type: "string" },
+              highlight: { type: "string" },
+              resume: { type: "string" },
+            },
+          },
+          maxChars: { type: "integer", minimum: 50, maximum: 5000, description: "Maximum length of the result in characters." },
+        },
+      },
+      RewriteResult: {
+        type: "object",
+        required: ["text"],
+        properties: { text: { type: "string" } },
       },
     },
   },

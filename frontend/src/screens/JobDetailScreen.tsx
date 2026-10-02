@@ -12,13 +12,14 @@ interface Props {
   profile: Profile;
   go: (s: Screen) => void;
   onRetry: (b: Branch) => void;
+  onRedraftEmail: () => void;
   onFind: () => void;
   onSync: () => void;
   onContact: (contactId: string, patch: Partial<Contact>) => void;
   onEmail: (patch: Partial<Email>) => void;
 }
 
-export default function JobDetailScreen({ job, d, prevScreen, profile, go, onRetry, onFind, onSync, onContact, onEmail }: Props) {
+export default function JobDetailScreen({ job, d, prevScreen, profile, go, onRetry, onRedraftEmail, onFind, onSync, onContact, onEmail }: Props) {
   const { scope, refresh, clear } = useCompanyScope(job.company);
   // Each tick also re-fetches the scope, so it shows up once the user saves it in LinkedIn.
   const { polling, start } = useConnectionPoll(job.id, () => { onSync(); refresh(); });
@@ -63,7 +64,7 @@ export default function JobDetailScreen({ job, d, prevScreen, profile, go, onRet
         </div>
       </div>
       {d?.status === 'done' && <DonePanel job={job} d={d} profile={profile} scope={scope} polling={polling} onFind={find}
-            onRetry={onRetry} onContact={onContact} onEmail={onEmail} />}
+            onRetry={onRetry} onRedraftEmail={onRedraftEmail} onContact={onContact} onEmail={onEmail} />}
     </>
   );
 }

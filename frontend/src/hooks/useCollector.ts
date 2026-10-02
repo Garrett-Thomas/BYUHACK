@@ -3,7 +3,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { Branch, Contact, Email, Job, JobData, LogEntry, Profile } from '../types';
 import type { ApiConnection } from '../lib/api';
 import { ApiError, draftEmail, findContact, getConnections } from '../lib/api';
-import { draftContact } from '../lib/drafting';
+import { draftContact, profileKey } from '../lib/drafting';
 
 type SetData = Dispatch<SetStateAction<Record<string, JobData>>>;
 type State = LogEntry['state'];
@@ -18,15 +18,15 @@ const toContact = (c: ApiConnection, job: Job, p: Profile): Contact => {
     id: c.id, name: c.name, title: c.headline ?? '', degree: c.degree ?? 'Saved',
     reason: c.notes ?? c.location ?? '', profileUrl: c.sourceProfileUrl,
     status: 'Not sent' as const, updatedAt: c.updatedAt,
-    mutuals: c.mutuals ?? [], mutualCount: c.mutualCount ?? null, mutualIndex: 0,
+    mutuals: c.mutuals ?? [], mutualCount: c.mutualCount ?? null, mutualIndex: 0, edited: false,
   };
   return { ...base, text: draftContact(base, job, p) };
 };
 
 // Merge by id: append new people; existing ones keep their text, status and
 // mutualIndex (clamped) but take the refreshed name, title, degree, mutuals,
-// mutualCount and updatedAt. If the text is still the untouched draft, it is
-// redrafted for the refreshed degree/mutuals.
+// mutualCount and updatedAt. If the text was never edited, it is redrafted when
+// the name, degree or mutuals changed; edited text is never touched.
 const mergeContacts = (cur: Contact[], next: Contact[], job: Job, p: Profile): Contact[] => {
   const byId = new Map(next.map((c) => [c.id, c]));
   const have = new Set(cur.map((c) => c.id));
@@ -36,7 +36,8 @@ const mergeContacts = (cur: Contact[], next: Contact[], job: Job, p: Profile): C
       mutuals: n.mutuals, mutualCount: n.mutualCount,
       mutualIndex: Math.min(c.mutualIndex, Math.max(0, n.mutuals.length - 1)),
     };
-    return { ...u, text: c.text === draftContact(c, job, p) ? draftContact(u, job, p) : c.text };
+    const changed = c.name !== n.name || c.degree !== n.degree || JSON.stringify(c.mutuals) !== JSON.stringify(n.mutuals);
+    return !c.edited && changed ? { ...u, text: draftContact(u, job, p) } : u;
   };
   return [
     ...cur.map((c) => { const n = byId.get(c.id); return n ? refresh(c, n) : c; }),
@@ -101,7 +102,8 @@ export function useCollector(setData: SetData) {
         const draft = await draftEmail({ ...info, email: to, label, ...profile });
         log.set(n, 'done');
         return {
-          email: { to, toName: label, confidence: 'found via web search', subject: draft.subject, text: draft.body },
+          email: { to, toName: label, confidence: 'found via web search', subject: draft.subject, text: draft.body,
+            profileKey: profileKey(profile), edited: false },
           error: null,
         };
       } catch (e) {
@@ -124,6 +126,24 @@ export function useCollector(setData: SetData) {
       ? { ...d, err: { ...d.err, [branch]: null }, busy: { ...d.busy, [branch]: true } } : d));
     if (branch === 'contacts') loadContacts(r, NO_LOG).then((error) => finish(error));
     else loadEmail(NO_LOG).then((e) => finish(e.error, { email: e.email }));
+  }, [run]);
+
+  // Redrafts the email to the address already found, e.g. after a profile change: one
+  // draft-email call, no new web search, so the recipient can't change. On failure the old
+  // draft stays and the error shows with the email section's Retry.
+  const redraftEmail = useCallback((job: Job, profile: Profile, sent: Email) => {
+    const r = runs.current[job.id] ?? 0;
+    const { patch } = run(job, profile);
+    patch(r, (d) => (d.status === 'done' ? { ...d, err: { ...d.err, email: null }, busy: { ...d.busy, email: true } } : d));
+    const info = { company: job.company, role: job.role, location: job.location, term: job.term };
+    draftEmail({ ...info, email: sent.to, label: sent.toName, ...profile }).then(
+      (draft) => patch(r, (d) => (d.status === 'done' && d.email && d.email !== 'idle' ? {
+        ...d, busy: { ...d.busy, email: false },
+        email: { ...d.email, subject: draft.subject, text: draft.body, profileKey: profileKey(profile), edited: false },
+      } : d)),
+      (e) => patch(r, (d) => (d.status === 'done'
+        ? { ...d, busy: { ...d.busy, email: false }, err: { ...d.err, email: errMsg(e) } } : d)),
+    );
   }, [run]);
 
   // Creates the finished-but-empty state for a job with no data, without running
@@ -149,5 +169,5 @@ export function useCollector(setData: SetData) {
     }, () => {});
   }, [run]);
 
-  return { retry, ensureIdle, sync };
+  return { retry, redraftEmail, ensureIdle, sync };
 }

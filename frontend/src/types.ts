@@ -27,6 +27,7 @@ export interface Contact {
   mutuals: Mutual[];
   mutualCount: number | null;
   mutualIndex: number; // which mutual the intro request is addressed to
+  edited: boolean; // text was changed by the user; false means it is still the generated draft
 }
 
 export interface Email {
@@ -35,6 +36,8 @@ export interface Email {
   confidence: string;
   subject: string;
   text: string;
+  profileKey: string; // name|school|highlight when it was drafted
+  edited: boolean;
 }
 
 export interface LogEntry {

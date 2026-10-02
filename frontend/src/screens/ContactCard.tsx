@@ -1,19 +1,20 @@
 import { useState } from 'react';
-import type { Contact, Profile } from '../types';
+import type { Contact, Job, Profile } from '../types';
 import { STATUS_CLASS, STATUS_CYCLE } from '../data/constants';
+import { draftContact } from '../lib/drafting';
 import AiToolbar from '../components/AiToolbar';
 import CopyOpenLink from '../components/CopyOpenLink';
 import CardHead from './CardHead';
 
 interface Props {
-  jobId: string;
+  job: Job;
   contact: Contact;
   profile: Profile;
   onChange: (patch: Partial<Contact>) => void;
 }
 
-export default function ContactCard({ jobId, contact: c, profile, onChange }: Props) {
-  const key = jobId + ':' + c.id;
+export default function ContactCard({ job, contact: c, profile, onChange }: Props) {
+  const key = job.id + ':' + c.id;
   const bodyId = 'note-body-' + key.replace(':', '-');
   const [open, setOpen] = useState(false);
   const len = c.text.length;
@@ -45,6 +46,12 @@ export default function ContactCard({ jobId, contact: c, profile, onChange }: Pr
             extra={
               <div className="links">
                 <CopyOpenLink text={c.text} href={c.profileUrl} />
+                {c.edited && (
+                  <button className="btn-text" type="button"
+                    onClick={() => onChange({ text: draftContact(c, job, profile), edited: false })}>
+                    Reset to draft
+                  </button>
+                )}
               </div>
             } />
         </div>

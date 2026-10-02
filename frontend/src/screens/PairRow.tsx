@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Contact, Job, Profile } from '../types';
 import { STATUS_CLASS, STATUS_CYCLE } from '../data/constants';
-import { draftIntroRequest } from '../lib/drafting';
+import { draftContact, draftIntroRequest } from '../lib/drafting';
 import AiToolbar from '../components/AiToolbar';
 import CopyOpenLink from '../components/CopyOpenLink';
 import CardHead from './CardHead';
@@ -57,8 +57,14 @@ function MutualCard({ job, contact: c, profile, onChange, open, onToggle }: Prop
                 <CopyOpenLink text={c.text} href={m.profileUrl} />
                 {other && (
                   <button className="btn-text" type="button"
-                    onClick={() => onChange({ mutualIndex: 1 - i, text: draftIntroRequest(other, c, job, profile) })}>
+                    onClick={() => onChange({ mutualIndex: 1 - i, text: draftIntroRequest(other, c, job, profile), edited: false })}>
                     {'Ask ' + first(other.name) + ' instead'}
+                  </button>
+                )}
+                {c.edited && (
+                  <button className="btn-text" type="button"
+                    onClick={() => onChange({ text: draftContact(c, job, profile), edited: false })}>
+                    Reset to draft
                   </button>
                 )}
               </div>

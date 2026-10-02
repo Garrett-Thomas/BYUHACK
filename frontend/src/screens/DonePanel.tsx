@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Branch, Contact, Email, Job, JobData, Profile } from '../types';
 import type { CompanyScope } from '../lib/api';
 import { linkedInPeopleUrl } from '../lib/format';
+import { profileKey } from '../lib/drafting';
 import Tabs from '../components/Tabs';
 import ContactCard from './ContactCard';
 import PairRow from './PairRow';
@@ -16,6 +17,7 @@ interface Props {
   polling: boolean;
   onFind: () => void;
   onRetry: (b: Branch) => void;
+  onRedraftEmail: () => void;
   onContact: (contactId: string, patch: Partial<Contact>) => void;
   onEmail: (patch: Partial<Email>) => void;
 }
@@ -24,7 +26,7 @@ type Tab = 'people' | 'email';
 
 const newestFirst = (a: Contact, b: Contact) => b.updatedAt.localeCompare(a.updatedAt);
 
-export default function DonePanel({ job, d, profile, scope, polling, onFind, onRetry, onContact, onEmail }: Props) {
+export default function DonePanel({ job, d, profile, scope, polling, onFind, onRetry, onRedraftEmail, onContact, onEmail }: Props) {
   const { contacts, email, err, busy } = d;
   const [tab, setTab] = useState<Tab>('people');
   const sent = contacts.filter((c) => c.status !== 'Not sent').length;
@@ -87,7 +89,7 @@ export default function DonePanel({ job, d, profile, scope, polling, onFind, onR
                         <PairRow key={c.id} job={job} contact={c} profile={profile}
                           onChange={(patch) => onContact(c.id, patch)} />
                       ) : (
-                        <ContactCard key={c.id} jobId={job.id} contact={c} profile={profile}
+                        <ContactCard key={c.id} job={job} contact={c} profile={profile}
                           onChange={(patch) => onContact(c.id, patch)} />
                       ))}
                     </div>
@@ -98,7 +100,8 @@ export default function DonePanel({ job, d, profile, scope, polling, onFind, onR
           )}
         </section>
       ) : email && email !== 'idle' && !err.email && !busy.email ? (
-        <EmailComposer jobId={job.id} email={email} profile={profile} onChange={onEmail} panel={panel('email')} />
+        <EmailComposer jobId={job.id} email={email} profile={profile} onChange={onEmail} panel={panel('email')}
+          stale={!email.edited && email.profileKey !== profileKey(profile)} onRedraft={onRedraftEmail} />
       ) : (
         <section {...panel('email')}>
           <h2 style={{ marginBottom: 12 }}>Email to hiring team</h2>

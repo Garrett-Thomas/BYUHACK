@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Profile } from '../types';
+import { ApiError } from '../lib/api';
 import { rewriteText } from '../lib/rewrite';
 
 interface Props {
@@ -17,16 +18,23 @@ interface Props {
 export default function AiToolbar({ aiKey, presets = [], text, profile, onApply, extra, maxChars }: Props) {
   const [value, setValue] = useState('');
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const isEmail = aiKey.endsWith(':email');
 
   async function rewrite(instruction: string) {
     const ins = instruction.trim();
     if (!ins || busy) return;
     setBusy(true);
-    const out = await rewriteText(text, ins, profile, maxChars ?? (isEmail ? 0 : 300));
-    onApply(out.trim());
-    setValue('');
-    setBusy(false);
+    setError(null);
+    try {
+      const out = await rewriteText(text, ins, profile, maxChars ?? (isEmail ? 0 : 300));
+      onApply(out.trim());
+      setValue('');
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Rewrite failed — is the Warmline server running?');
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -47,6 +55,7 @@ export default function AiToolbar({ aiKey, presets = [], text, profile, onApply,
           {busy ? 'Rewriting…' : 'Rewrite'}
         </button>
       </div>
+      {error && <div className="count-over" style={{ fontSize: 12 }} role="alert">{error}</div>}
       {extra}
     </div>
   );

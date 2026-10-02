@@ -8,6 +8,7 @@ import { connectionsRouter } from "./connections/routes.js";
 import { draftEmail } from "./draftEmail.js";
 import { findContact } from "./findContact.js";
 import { openApiDocument } from "./openapi.js";
+import { rewrite } from "./rewrite.js";
 
 const DEFAULT_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173";
 
@@ -111,6 +112,57 @@ export function createApp(db: DatabaseSync) {
         err,
       );
       res.status(502).json({ error: "Upstream draft failed" });
+    }
+  });
+
+  app.post("/api/rewrite", async (req: Request, res: Response) => {
+    const start = Date.now();
+    const body: unknown = req.body;
+    if (typeof body !== "object" || body === null || Array.isArray(body)) {
+      res.status(400).json({ error: "Body must be a JSON object" });
+      return;
+    }
+    const { text, instruction, profile, maxChars } = body as Record<string, unknown>;
+    if (typeof text !== "string" || !text.trim() || text.length > 10_000) {
+      res.status(400).json({ error: "`text` must be a non-empty string of at most 10000 characters" });
+      return;
+    }
+    if (typeof instruction !== "string" || !instruction.trim() || instruction.length > 500) {
+      res.status(400).json({ error: "`instruction` must be a non-empty string of at most 500 characters" });
+      return;
+    }
+    if (typeof profile !== "object" || profile === null || Array.isArray(profile)) {
+      res.status(400).json({ error: "`profile` must be an object" });
+      return;
+    }
+    const p = profile as Record<string, unknown>;
+    if (
+      typeof p.name !== "string" ||
+      typeof p.school !== "string" ||
+      typeof p.highlight !== "string" ||
+      typeof p.resume !== "string"
+    ) {
+      res.status(400).json({ error: "`profile.name`, `school`, `highlight`, and `resume` must be strings" });
+      return;
+    }
+    if (maxChars !== undefined && (!Number.isInteger(maxChars) || (maxChars as number) < 50 || (maxChars as number) > 5000)) {
+      res.status(400).json({ error: "`maxChars` must be an integer from 50 to 5000" });
+      return;
+    }
+
+    const label = `rewrite instruction=${JSON.stringify(instruction.slice(0, 40))}`;
+    try {
+      const result = await rewrite({
+        text,
+        instruction,
+        profile: { name: p.name, school: p.school, highlight: p.highlight, resume: p.resume },
+        maxChars: maxChars as number | undefined,
+      });
+      console.log(`${label} result=ok ${Date.now() - start}ms`);
+      res.json(result);
+    } catch (err) {
+      console.error(`${label} result=error ${Date.now() - start}ms`, err);
+      res.status(502).json({ error: "Upstream rewrite failed" });
     }
   });
 

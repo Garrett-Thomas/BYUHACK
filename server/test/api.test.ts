@@ -634,6 +634,7 @@ describe("misc", () => {
       [
         "/api/draft-email",
         "/api/find-contact",
+        "/api/rewrite",
         "/api/v1/companies/{company}/connections",
         "/api/v1/company-scopes/{company}",
         "/api/v1/connections",
@@ -650,5 +651,34 @@ describe("misc", () => {
   it("find-contact validates input without calling upstream", async () => {
     expect((await request(app).post("/api/find-contact").send({ company: "x" })).status).toBe(400);
     expect((await request(app).post("/api/draft-email").send({ company: "x" })).status).toBe(400);
+  });
+
+  it("rewrite validates input without calling upstream", async () => {
+    const profile = { name: "Alex", school: "BYU", highlight: "", resume: "" };
+    const valid = { text: "Hi Sam, quick note.", instruction: "Make it shorter", profile };
+    const bad: [string, unknown][] = [
+      ["non-object body", []],
+      ["missing text", { ...valid, text: undefined }],
+      ["blank text", { ...valid, text: "   " }],
+      ["text too long", { ...valid, text: "x".repeat(10_001) }],
+      ["non-string text", { ...valid, text: 5 }],
+      ["missing instruction", { ...valid, instruction: undefined }],
+      ["blank instruction", { ...valid, instruction: " " }],
+      ["instruction too long", { ...valid, instruction: "x".repeat(501) }],
+      ["missing profile", { ...valid, profile: undefined }],
+      ["array profile", { ...valid, profile: [] }],
+      ["profile field not a string", { ...valid, profile: { ...profile, resume: 1 } }],
+      ["profile field missing", { ...valid, profile: { name: "Alex", school: "BYU", highlight: "" } }],
+      ["maxChars too small", { ...valid, maxChars: 49 }],
+      ["maxChars too large", { ...valid, maxChars: 5001 }],
+      ["maxChars not an integer", { ...valid, maxChars: 100.5 }],
+      ["maxChars not a number", { ...valid, maxChars: "300" }],
+      ["maxChars null", { ...valid, maxChars: null }],
+    ];
+    for (const [label, b] of bad) {
+      const r = await request(app).post("/api/rewrite").send(b as object);
+      expect(r.status, label).toBe(400);
+      expect(r.body.error, label).toBeTruthy();
+    }
   });
 });

@@ -9,9 +9,11 @@ interface Props {
   profile: Profile;
   onChange: (patch: Partial<Email>) => void;
   panel?: HTMLAttributes<HTMLElement>; // tabpanel wiring from DonePanel
+  stale: boolean; // profile changed since the (unedited) email was drafted
+  onRedraft: () => void;
 }
 
-export default function EmailComposer({ jobId, email, profile, onChange, panel }: Props) {
+export default function EmailComposer({ jobId, email, profile, onChange, panel, stale, onRedraft }: Props) {
   const mailto = 'mailto:' + email.to +
     '?subject=' + encodeURIComponent(email.subject) +
     '&body=' + encodeURIComponent(email.text);
@@ -19,6 +21,12 @@ export default function EmailComposer({ jobId, email, profile, onChange, panel }
   return (
     <section {...panel}>
       <h2 style={{ marginBottom: 12 }}>Email to hiring team</h2>
+      {stale && (
+        <div style={{ fontSize: 12, color: 'var(--ink-3)', marginBottom: 10 }}>
+          {'Your profile changed since this email was drafted. '}
+          <button className="btn-text" type="button" onClick={onRedraft}>Redraft</button>
+        </div>
+      )}
       <div className="card card-18">
         <div className="ehead">
           <span className="ehead-k">To</span>

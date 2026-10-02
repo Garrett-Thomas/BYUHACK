@@ -2,6 +2,9 @@ import type { Contact, Job, Mutual, Profile } from '../types';
 
 const MAX = 300;
 
+// The profile fields that feed drafts; when it changes, untouched drafts are stale.
+export const profileKey = (p: Profile) => p.name + '|' + p.school + '|' + p.highlight;
+
 // Connection note, worded for how close the contact is. Degree is '1st' | '2nd' |
 // '3rd' | 'Saved'. Stays under LinkedIn's 300-char limit by dropping the highlight
 // sentence if the role/company names are long.
