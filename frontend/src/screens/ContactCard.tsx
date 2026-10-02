@@ -2,7 +2,7 @@ import type { Contact, Profile } from '../types';
 import { STATUS_CLASS, STATUS_CYCLE } from '../data/constants';
 import { initials } from '../lib/format';
 import AiToolbar from '../components/AiToolbar';
-import CopyButton from '../components/CopyButton';
+import CopyOpenLink from '../components/CopyOpenLink';
 
 interface Props {
   jobId: string;
@@ -46,8 +46,7 @@ export default function ContactCard({ jobId, contact: c, profile, onChange }: Pr
         text={c.text} profile={profile} onApply={(text) => onChange({ text })}
         extra={
           <div className="links">
-            <CopyButton className="btn-text" label="Copy message" text={c.text} />
-            <a href={c.profileUrl} target="_blank" rel="noopener">Open LinkedIn profile ↗</a>
+            <CopyOpenLink text={c.text} href={c.profileUrl} />
           </div>
         } />
     </div>
