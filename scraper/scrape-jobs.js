@@ -1,5 +1,5 @@
 // Pulls intern / new-grad SWE listings from the public GitHub job-board repos
-// Warmline points at, normalizes them into one shape, and writes data/jobs.json
+// Top of the Stack points at, normalizes them into one shape, and writes data/jobs.json
 // for the frontend to fetch. Run daily by .github/workflows/scrape-jobs.yml.
 
 import { writeFile, mkdir } from 'node:fs/promises';

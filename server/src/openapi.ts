@@ -32,7 +32,7 @@ const contactBodySchema = (required: string[]) => ({
 export const openApiDocument = {
   openapi: "3.0.3",
   info: {
-    title: "Warmline API",
+    title: "Top of the Stack API",
     version: "1.0.0",
     description:
       "Saved LinkedIn connections plus recruiter lookup and email drafting. There is no authentication: the server listens on 127.0.0.1 only.",

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Warmline LinkedIn Capture",
+  "name": "Top of the Stack LinkedIn Capture",
   "version": "0.1.0",
-  "description": "Saves the people on LinkedIn searches opened from Warmline into your local Warmline server.",
+  "description": "Saves the people on LinkedIn searches opened from Top of the Stack into your local Top of the Stack server.",
   "permissions": ["storage", "alarms"],
   "host_permissions": [
     "https://www.linkedin.com/*",

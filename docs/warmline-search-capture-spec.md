@@ -1,18 +1,18 @@
-# Warmline-Initiated Search Capture — Spec
+# Search Capture Initiated From Top of the Stack — Spec
 
 Status: **approved**
 Builds on: `docs/connections-integration-spec.md` (already implemented). This spec replaces that one's passive capture model.
 
 ## Goal
 
-The user clicks a link in Warmline. It opens a LinkedIn people search filtered to their **1st- and 2nd-degree connections** at the job's company. The extension saves the people on that search, and on further pages of it that the user clicks through, then attributes them to that company. Nothing else the user browses on LinkedIn is read or saved. The Warmline job screen picks up the new people on its own.
+The user clicks a link in Top of the Stack. It opens a LinkedIn people search filtered to their **1st- and 2nd-degree connections** at the job's company. The extension saves the people on that search, and on further pages of it that the user clicks through, then attributes them to that company. Nothing else the user browses on LinkedIn is read or saved. The Top of the Stack job screen picks up the new people on its own.
 
 ## Decisions (from the user)
 
 | # | Decision |
 |---|---|
 | S1 | **Company filter:** keyword + network. The link searches the company name with LinkedIn's `network=["F","S"]` filter. No company-ID lookup. |
-| S2 | **Capture trigger:** automatic, but only in tabs opened from a Warmline link. All other LinkedIn pages are ignored: not extracted, not sent. |
+| S2 | **Capture trigger:** automatic, but only in tabs opened from a Top of the Stack link. All other LinkedIn pages are ignored: not extracted, not sent. |
 | S3 | **Pagination:** the user clicks next page themselves. Each page they open in that search is saved. The extension never clicks, scrolls or paginates. |
 | S4 | **Refresh:** after the link is clicked, the job screen polls the server and new people appear on their own. |
 
@@ -20,7 +20,7 @@ The user clicks a link in Warmline. It opens a LinkedIn people search filtered t
 
 | # | Decision |
 |---|---|
-| S5 | Everyone saved from a Warmline search gets `company` = the company in the link, not a value parsed from their headline. |
+| S5 | Everyone saved from a Top of the Stack search gets `company` = the company in the link, not a value parsed from their headline. |
 | S6 | Degree (`1st` / `2nd`) is stored per connection and shown on the contact card's degree chip. 3rd-degree and "LinkedIn Member" results are skipped even if they appear. |
 | S7 | Capture from profile pages (`/in/*`) is removed. Only search pages are read. |
 | S8 | Rows already in the database are left untouched. |
@@ -64,13 +64,13 @@ Every value is `encodeURIComponent`-encoded. It opens in a new tab (`target="_bl
 
 ### Options and README
 
-The options page gains one line explaining that only searches opened from Warmline are saved. Update the README's "What it captures" section to match.
+The options page gains one line explaining that only searches opened from Top of the Stack are saved. Update the README's "What it captures" section to match.
 
 ## Server changes
 
 - **Migration 2:** `ALTER TABLE connections ADD COLUMN degree TEXT` (nullable).
 - **Ingestion schema:** add an optional `degree`, nullable, one of `"1st" | "2nd" | "3rd"`. Return it on every connection. Upsert overwrites it.
-- **Company matching:** unchanged. Exact normalized match is now enough, because Warmline captures carry the link's company verbatim.
+- **Company matching:** unchanged. Exact normalized match is now enough, because Top of the Stack captures carry the link's company verbatim.
 - Update `openapi.ts` and the tests: degree round-trip, an invalid degree gives 422, and migration 2 applies on an existing v1 database.
 
 ## Frontend changes
@@ -93,10 +93,10 @@ The options page gains one line explaining that only searches opened from Warmli
   - `extension`: build plus tests, including the registration logic as a pure function (`shouldCapture(registration, keywords, now)`) and the degree filter.
   - `frontend`: build.
 - **Browser (Sonnet agent with Claude in Chrome, after the code lands):**
-  1. Open the Warmline frontend at `http://localhost:5173`, pick a job, and click **Find people on LinkedIn ↗**.
+  1. Open the Top of the Stack frontend at `http://localhost:5173`, pick a job, and click **Find people on LinkedIn ↗**.
   2. In the LinkedIn tab, confirm the search shows the 1st/2nd filter. Wait for the capture, then open page 2 once.
   3. Confirm through the server API that new rows have the job's company and a `1st`/`2nd` degree.
-  4. Confirm the Warmline job screen shows them without a manual re-run.
+  4. Confirm the Top of the Stack job screen shows them without a manual re-run.
   5. Open an unrelated LinkedIn people search by hand and confirm nothing new is saved.
   6. Do not click Collect or Find recruiting email (they make paid Claude calls). Keep total LinkedIn page views under about 10.
 

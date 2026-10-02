@@ -10,7 +10,7 @@ interface Props {
 export default function FindCompany({ job, onFind }: Props) {
   return (
     <>
-      <div>Pick the right company on LinkedIn once, and Warmline will remember it</div>
+      <div>Pick the right company on LinkedIn once, and Top of the Stack will remember it</div>
       <a className="btn btn-solid" href={linkedInCompanySearchUrl(job.company)} target="_blank" rel="noopener"
         onClick={onFind}>
         {'Find ' + job.company + ' on LinkedIn ↗'}

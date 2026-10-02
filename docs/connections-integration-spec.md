@@ -1,13 +1,13 @@
 # Connections Integration — Spec
 
 Status: **approved**
-Builds on: `connections-finder/spec.md` (Orion, branch `or-connections-finder`) and the Warmline app on `feature/react-typescript-frontend`.
+Builds on: `connections-finder/spec.md` (Orion, branch `or-connections-finder`) and the Top of the Stack app on `feature/react-typescript-frontend`.
 
 ## Goal
 
 Replace the app's simulated "Collect connections" flow with real data:
 
-1. A Chrome extension saves the LinkedIn people the user views into the Warmline server.
+1. A Chrome extension saves the LinkedIn people the user views into the Top of the Stack server.
 2. The job detail screen shows those saved people for the job's company.
 3. The email panel uses the existing `/api/find-contact` and `/api/draft-email` endpoints instead of the hardcoded recruiter email.
 
@@ -155,7 +155,7 @@ When the user clicks "Collect connections & HR email" or "Re-run search":
 
 ### Done view changes
 
-- **No saved connections:** the contacts column shows "No saved connections at {company} yet. Browse their LinkedIn people page with the Warmline extension on, then re-run."
+- **No saved connections:** the contacts column shows "No saved connections at {company} yet. Browse their LinkedIn people page with the Top of the Stack extension on, then re-run."
 - **`email` is `null`:** the email column shows "No public recruiting email found for {company}" with Retry.
 - **Email found:** `toName` is the `label`, `confidence` is `'found via web search'`, and `to`, `subject` and `text` come from the APIs.
 

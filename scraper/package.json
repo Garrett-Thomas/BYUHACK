@@ -1,9 +1,9 @@
 {
-  "name": "warmline-scraper",
+  "name": "top-of-the-stack-scraper",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Pulls daily internship/new-grad listings from public GitHub job-board repos for the Warmline frontend.",
+  "description": "Pulls daily internship/new-grad listings from public GitHub job-board repos for the Top of the Stack frontend.",
   "scripts": {
     "scrape": "node scrape-jobs.js"
   },

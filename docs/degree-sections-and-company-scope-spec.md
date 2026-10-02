@@ -6,7 +6,7 @@ Builds on: `docs/warmline-search-capture-spec.md` (implemented in `9804cb5`).
 ## Goals
 
 1. **Degree sections.** Show saved people in three labeled sections, in priority order: 1st-degree, 2nd-degree, then everyone else. Each section has its own LinkedIn link, and the drafted note fits the relationship.
-2. **Company scope.** People searches use LinkedIn's real **Current company** filter, never a keyword search. The user links a Warmline company to its LinkedIn company page once, by clicking a button the extension shows on that page, and the IDs are cached on the server.
+2. **Company scope.** People searches use LinkedIn's real **Current company** filter, never a keyword search. The user links a Top of the Stack company to its LinkedIn company page once, by clicking a button the extension shows on that page, and the IDs are cached on the server.
 
 ## What I verified in the browser
 
@@ -53,13 +53,13 @@ These apply once a company scope exists. See Part B for the no-scope state.
 ### Flow
 
 1. **No saved scope.**
-   - Warmline shows no degree links. Instead:
-     - the contacts area shows a single **Find {company} on LinkedIn ↗** button and the line "Pick the right company on LinkedIn once, and Warmline will remember it";
+   - Top of the Stack shows no degree links. Instead:
+     - the contacts area shows a single **Find {company} on LinkedIn ↗** button and the line "Pick the right company on LinkedIn once, and Top of the Stack will remember it";
      - the header's people button is replaced by the same Find button.
    - Clicking it opens company search in a new tab and starts polling:
      `https://www.linkedin.com/search/results/companies/?keywords=<company>&warmline=<company>&wl_mode=company`
 2. **The extension registers the tab** as `{ mode: 'company', company, registeredAt }`. Nothing is captured on the search page. The user clicks into a company.
-3. **On `/company/<slug>/…` in that registered tab,** the content script injects a fixed-position button: **Save "<LinkedIn name>" as "<Warmline company>"**.
+3. **On `/company/<slug>/…` in that registered tab,** the content script injects a fixed-position button: **Save "<LinkedIn name>" as "<Top of the Stack company>"**.
    - `<LinkedIn name>` comes from the page's `h1` (falling back to `document.title` minus " | LinkedIn" and any leading "(N) ").
    - Style it inline: high z-index, bottom-right, with a small × to dismiss. No external CSS.
    - It is re-injected on single-page-app navigation to another company page in the same tab, so the user can look at several before choosing.
@@ -70,11 +70,11 @@ These apply once a company scope exists. See Part B for the no-scope state.
    3. The background calls `PUT /api/v1/company-scopes/:company`.
    4. On success, the background switches the tab's registration to people mode with `scope = { ids }`, and the content script calls `location.replace(...)` with the 1st-degree scoped people search:
       `https://www.linkedin.com/search/results/people/?currentCompany=<ids JSON>&network=["F"]&origin=COMPANY_PAGE_CANNED_SEARCH&warmline=<company>`
-   5. On failure, the button shows "Couldn't reach Warmline — is the server running?" and stays clickable.
-5. **That people search is captured as today,** and every record gets `company` = the Warmline company.
-6. **Warmline picks up the change.** Polling also re-fetches the scope, so the company line and the three degree sections appear on their own.
+   5. On failure, the button shows "Couldn't reach Top of the Stack — is the server running?" and stays clickable.
+5. **That people search is captured as today,** and every record gets `company` = the Top of the Stack company.
+6. **Top of the Stack picks up the change.** Polling also re-fetches the scope, so the company line and the three degree sections appear on their own.
 
-**With a saved scope**, every Warmline people link is the direct scoped URL:
+**With a saved scope**, every Top of the Stack people link is the direct scoped URL:
 
 `https://www.linkedin.com/search/results/people/?currentCompany=<ids JSON>&network=["F"|"S"|"O"]&origin=COMPANY_PAGE_CANNED_SEARCH&warmline=<company>`
 
@@ -129,7 +129,7 @@ These apply once a company scope exists. See Part B for the no-scope state.
   2. Click the correct company. Confirm the Save button appears with the right names, and click it.
   3. Confirm the redirect to a people search with `currentCompany` and `network=["F"]`.
   4. Confirm a `company-scopes` row exists and that new connections carry the job's company and degree `1st`.
-  5. In Warmline, confirm the scope line and the three sections appear and the 1st-degree section fills in.
+  5. In Top of the Stack, confirm the scope line and the three sections appear and the 1st-degree section fills in.
   6. Click the 2nd-degree link and confirm it goes directly to the scoped people search.
   7. Open a company page by hand in a normal tab and confirm no Save button appears.
   8. Don't click the paid email buttons. Stay under about 12 LinkedIn page views.

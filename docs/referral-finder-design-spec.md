@@ -1,6 +1,6 @@
-# Warmline — Referral Finder · Design Spec
+# Top of the Stack — Referral Finder · Design Spec
 
-Source of truth: claude.ai design project **"Warmline job referral platform"**
+Source of truth: claude.ai design project **"Top of the Stack job referral platform"**
 (`45128bf2-621a-48d4-bf54-cdd0ff36c472`), file `Referral Finder.dc.html`,
 runtime `support.js`.
 

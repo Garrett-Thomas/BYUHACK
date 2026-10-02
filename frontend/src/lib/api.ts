@@ -52,7 +52,7 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
   try {
     res = await fetch(url, init);
   } catch {
-    throw new ApiError(0, 'Could not reach the Warmline server');
+    throw new ApiError(0, 'Could not reach the Top of the Stack server');
   }
   const body: unknown = await res.json().catch(() => null);
   if (!res.ok) {

@@ -7,7 +7,7 @@ export const EMPLOYEES_WAIT_MS = 10000;
 const DEBOUNCE_MS = 250;
 
 const NO_EMPLOYEES = "LinkedIn doesn't list employees for this page";
-const SERVER_ERROR = "Couldn't reach Warmline — is the server running?";
+const SERVER_ERROR = "Couldn't reach Top of the Stack — is the server running?";
 
 export interface SaveButtonHandle {
   slug: string;

@@ -1,6 +1,6 @@
-# Warmline LinkedIn capture (Chrome extension)
+# Top of the Stack LinkedIn capture (Chrome extension)
 
-Saves the people at a company on LinkedIn, scoped by LinkedIn's Current company filter, into your local Warmline server (`POST /api/v1/connections`). The first time, you link the Warmline company to its LinkedIn company page with a button this extension shows there.
+Saves the people at a company on LinkedIn, scoped by LinkedIn's Current company filter, into your local Top of the Stack server (`POST /api/v1/connections`). The first time, you link the Top of the Stack company to its LinkedIn company page with a button this extension shows there.
 
 ## Build and load
 
@@ -22,19 +22,19 @@ the count of dropped (failed) items, with **Retry now** and **Clear queue**.
 
 ## What it does
 
-Warmline links a job's company to its LinkedIn company page once, then saves the people on
-company-scoped LinkedIn searches that you open from Warmline into your local Warmline server
+Top of the Stack links a job's company to its LinkedIn company page once, then saves the people on
+company-scoped LinkedIn searches that you open from Top of the Stack into your local Top of the Stack server
 (`POST /api/v1/connections`). LinkedIn's real **Current company** filter is used, never a keyword
 search. Nothing else you browse on LinkedIn is read or saved, and profile pages (`/in/*`) are not read
 at all.
 
 ### Linking a company (once per company)
 
-1. In Warmline, click **Find {company} on LinkedIn**. It opens a LinkedIn company search with
+1. In Top of the Stack, click **Find {company} on LinkedIn**. It opens a LinkedIn company search with
    `warmline=<company>&wl_mode=company`. The extension registers that tab in **company mode**; nothing
    is captured on the search page.
 2. Click into the right company. On its `/company/<slug>/` page, in that tab only, the extension shows
-   a button at the top right: **Save "<LinkedIn name>" as "<Warmline company>"** (with a x to
+   a button at the top right: **Save "<LinkedIn name>" as "<Top of the Stack company>"** (with a x to
    dismiss it). It is re-shown when you move to another company page in the same tab. When you click
    into a company from search results, LinkedIn renders the page in place and leaves the "N employees"
    count as plain text, so the extension reloads that page once to get the full version with the link.
@@ -44,9 +44,9 @@ at all.
    `{linkedinSlug, linkedinName, linkedinIds}` with `PUT /api/v1/company-scopes/<company>`. On success the tab
    switches to **people mode** and the page goes to the 1st + 2nd degree people search scoped to those ids
    (`location.replace`, the only navigation the extension ever makes). If the server cannot be reached,
-   the button says "Couldn't reach Warmline - is the server running?" and stays clickable.
+   the button says "Couldn't reach Top of the Stack - is the server running?" and stays clickable.
 
-Warmline's later links are the scoped people searches directly
+Top of the Stack's later links are the scoped people searches directly
 (`.../search/results/people/?currentCompany=[ids]&network=["F"|"S"|"O"]&origin=COMPANY_PAGE_CANNED_SEARCH&warmline=<company>`).
 
 ### Which pages the extension acts on
@@ -75,7 +75,7 @@ What is saved per person (structured fields only, never HTML): name, profile URL
 For 2nd-degree people, `mutuals` is the up to two named, linked mutual connections from the card's mutual line
 (the smallest element whose text matches "mutual connection") and `mutualCount` is the named mutuals plus
 "& N other"; a 2nd-degree person with no linked mutual is not saved. 1st and 3rd degree send `[]` and `null`.
-`company` is the Warmline company from the tab's registration, assigned by the background worker, not
+`company` is the Top of the Stack company from the tab's registration, assigned by the background worker, not
 parsed from the headline. "LinkedIn Member" results are skipped.
 
 Failed sends (network error, 429, 5xx) are queued in `chrome.storage.local` with their

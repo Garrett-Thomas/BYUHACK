@@ -1,3 +1,4 @@
+import Logo from './Logo';
 import type { Screen } from '../types';
 
 interface Props {
@@ -14,7 +15,7 @@ export default function Header({ screen, prevScreen, name, go }: Props) {
   return (
     <header className="hdr">
       <div className="wrap hdr-in">
-        <div className="mark"><div className="mark-dot"></div><span>Warmline</span></div>
+        <div className="mark"><Logo size={24} /><span>Top of the Stack</span></div>
         <nav className="tabs" id="tabs" aria-label="Sections">
           {TABS.map(([label, key]) => (
             <button key={key} className={'tab' + (active(key) ? ' on' : '')}

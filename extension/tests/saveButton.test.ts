@@ -107,7 +107,7 @@ describe('save button', () => {
     saveBtn().click();
     await vi.advanceTimersByTimeAsync(0);
     expect(navigate).not.toHaveBeenCalled();
-    expect(host()!.textContent).toContain("Couldn't reach Warmline");
+    expect(host()!.textContent).toContain("Couldn't reach Top of the Stack");
     expect(saveBtn().disabled).toBe(false);
     saveBtn().click();
     await vi.advanceTimersByTimeAsync(0);
@@ -122,7 +122,7 @@ describe('save button', () => {
     saveBtn().click();
     await vi.advanceTimersByTimeAsync(0);
     expect(navigate).not.toHaveBeenCalled();
-    expect(host()!.textContent).toContain("Couldn't reach Warmline");
+    expect(host()!.textContent).toContain("Couldn't reach Top of the Stack");
   });
 
   it("ignores the previous company's employees link after SPA navigation to another company", async () => {
