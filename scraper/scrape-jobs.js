@@ -32,6 +32,38 @@ const isSweRole = (title) => SWE_INCLUDE_RE.test(title) && !SWE_EXCLUDE_RE.test(
 const MAX_JOBS = 40;
 const MAX_AGE_DAYS = 120;
 
+// Collapses city shorthand so "SF" and "San Francisco, CA" end up as one
+// filterable value instead of two. Built from what SimplifyJobs' and
+// vanshb03's own listings.json feeds actually emit as bare abbreviations
+// (confirmed by querying them directly, not guessed) that also appear
+// spelled out in full elsewhere in the same feeds. Keyed by the lowercased,
+// "+N"-stripped location string, since e.g. "LA" is unambiguous alone but
+// is also the state abbreviation inside "Bossier City, LA" — an exact-string
+// match against the whole field avoids colliding with those.
+const LOCATION_ALIASES = new Map([
+  ['sf', 'San Francisco, CA'],
+  ['nyc', 'New York, NY'],
+  ['new york city, ny', 'New York, NY'],
+  ['la', 'Los Angeles, CA'],
+]);
+
+function normalizeLocation(raw) {
+  let loc = (raw || '').trim();
+  if (!loc) return 'Remote';
+  loc = loc.replace(/\s*\+\d+$/, '').trim(); // "Austin, TX +1" -> "Austin, TX"
+
+  if (/^Remote \(.+\)$/i.test(loc)) return loc;
+  // Covers both feed styles: "Remote in USA" (SimplifyJobs) and "Remote - San Francisco, CA" (speedyapply).
+  const remoteMatch = /^Remote\s*(?:-|–|in)\s*(.+)$/i.exec(loc);
+  if (remoteMatch) {
+    let region = remoteMatch[1].trim();
+    region = /^usa?$/i.test(region) ? 'US' : (LOCATION_ALIASES.get(region.toLowerCase()) || region);
+    return 'Remote (' + region + ')';
+  }
+
+  return LOCATION_ALIASES.get(loc.toLowerCase()) || loc;
+}
+
 async function fetchText(url) {
   const res = await fetch(url, { headers: { 'User-Agent': 'warmline-scraper' } });
   if (!res.ok) throw new Error(url + ' -> ' + res.status);
@@ -50,7 +82,7 @@ async function fromJsonFeed(source) {
     out.push({
       company: e.company_name,
       role: e.title,
-      location: (e.locations && e.locations[0]) || 'Remote',
+      location: normalizeLocation(e.locations && e.locations[0]),
       postedAt,
       repo: source.repo,
       term: source.term,
@@ -72,7 +104,7 @@ function parseMarkdownTable(md, source) {
     out.push({
       company: company.trim(),
       role: role.trim(),
-      location: location.trim() || 'Remote',
+      location: normalizeLocation(location),
       postedAt: Date.now() - ageToMs(age.trim()),
       repo: source.repo,
       term: source.term,

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-02T17:43:16.985Z",
+  "generatedAt": "2026-10-02T18:13:18.036Z",
   "repos": [
     "SimplifyJobs/Summer2027-Internships",
     "SimplifyJobs/New-Grad-Positions",
@@ -9,6 +9,17 @@
   "jobs": [
     {
       "id": "j0",
+      "company": "Microsoft",
+      "role": "Software Engineer",
+      "location": "Washington, DC",
+      "posted": "today",
+      "repo": "speedyapply/2027-SWE-College-Jobs",
+      "term": "New Grad 2027",
+      "hasListing": true,
+      "url": "https://apply.careers.microsoft.com/careers/job/1970393557022395"
+    },
+    {
+      "id": "j1",
       "company": "Graphcore",
       "role": "Machine Learning and Data Science Engineer Intern",
       "location": "Austin, TX",
@@ -19,7 +30,7 @@
       "url": "https://job-boards.greenhouse.io/graphcore/jobs/8862951002"
     },
     {
-      "id": "j1",
+      "id": "j2",
       "company": "Symphony",
       "role": "Software Developer Intern",
       "location": "Belfast, UK",
@@ -30,7 +41,7 @@
       "url": "https://symphony.com/company/apply?gh_jid=8121113"
     },
     {
-      "id": "j2",
+      "id": "j3",
       "company": "Mindex",
       "role": "Software Engineer Co-op",
       "location": "Rochester, NY",
@@ -41,10 +52,10 @@
       "url": "https://apply.workable.com/mindex/j/84B10DB922/apply"
     },
     {
-      "id": "j3",
+      "id": "j4",
       "company": "ShopBack",
       "role": "Software Engineer Intern",
-      "location": "NYC",
+      "location": "New York, NY",
       "posted": "today",
       "repo": "SimplifyJobs/Summer2027-Internships",
       "term": "Summer 2027",
@@ -52,7 +63,7 @@
       "url": "https://jobs.lever.co/shopback-2/e5f5e276-e7f7-43e0-a224-5259d242fe98/apply"
     },
     {
-      "id": "j4",
+      "id": "j5",
       "company": "Profluent",
       "role": "Software Engineer Intern",
       "location": "Emeryville, CA",
@@ -63,7 +74,7 @@
       "url": "https://job-boards.greenhouse.io/profluent/jobs/5441955008"
     },
     {
-      "id": "j5",
+      "id": "j6",
       "company": "Keysight Technologies",
       "role": "Software Engineer Intern",
       "location": "Tewksbury, MA",
@@ -74,7 +85,7 @@
       "url": "https://jobs.keysight.com/jobs/54668?icims=1"
     },
     {
-      "id": "j6",
+      "id": "j7",
       "company": "Amazon",
       "role": "Software Development Engineer – Early Career - Amazon Dedicated Cloud - ADC",
       "location": "Seattle, WA",
@@ -85,7 +96,7 @@
       "url": "https://amazon.jobs/en/jobs/10529546/software-development-engineer-amazon-dedicated-cloud-early-career-2026-amazon-dedicated-cloud-adc"
     },
     {
-      "id": "j7",
+      "id": "j8",
       "company": "Range",
       "role": "Software Engineer Intern",
       "location": "McLean, VA",
@@ -96,7 +107,7 @@
       "url": "https://jobs.ashbyhq.com/range/5fe3697d-b5b3-4772-9de4-1551cb726718/application?embed=true"
     },
     {
-      "id": "j8",
+      "id": "j9",
       "company": "NCR Voyix",
       "role": "Junior DevOps Engineer",
       "location": "Bath, UK",
@@ -107,7 +118,7 @@
       "url": "https://ncr.wd1.myworkdayjobs.com/ext_non_us/job/BATH-GBR/Junior-DevOps-Engineer_R0158519"
     },
     {
-      "id": "j9",
+      "id": "j10",
       "company": "Expedia Group",
       "role": "Software Development Engineer 1",
       "location": "Vancouver, BC, Canada",
@@ -118,7 +129,7 @@
       "url": "https://expedia.wd108.myworkdayjobs.com/search/job/Canada---British-Columbia---Vancouver/Software-Development-Engineer-I_R-109478"
     },
     {
-      "id": "j10",
+      "id": "j11",
       "company": "Gas South",
       "role": "Software Engineer Intern",
       "location": "Atlanta, GA",
@@ -129,10 +140,10 @@
       "url": "https://job-boards.greenhouse.io/gassouth/jobs/8247622"
     },
     {
-      "id": "j11",
+      "id": "j12",
       "company": "Riot Games",
       "role": "Software Engineer Intern",
-      "location": "LA",
+      "location": "Los Angeles, CA",
       "posted": "today",
       "repo": "SimplifyJobs/Summer2027-Internships",
       "term": "Summer 2027",
@@ -140,7 +151,7 @@
       "url": "https://job-boards.greenhouse.io/riotgamesup/jobs/8222015"
     },
     {
-      "id": "j12",
+      "id": "j13",
       "company": "John Deere",
       "role": "IT Software Engineer Part-Time Student - Technology",
       "location": "Moline, IL",
@@ -151,10 +162,10 @@
       "url": "https://johndeere.eightfold.ai/careers/job/137483700388"
     },
     {
-      "id": "j13",
+      "id": "j14",
       "company": "Mach9",
       "role": "Machine Learning Engineer - Product",
-      "location": "SF",
+      "location": "San Francisco, CA",
       "posted": "today",
       "repo": "SimplifyJobs/New-Grad-Positions",
       "term": "New Grad 2027",
@@ -162,7 +173,7 @@
       "url": "https://jobs.ashbyhq.com/mach9/622a014b-ff77-45bd-9caa-61a6506884ed/application?embed=true"
     },
     {
-      "id": "j14",
+      "id": "j15",
       "company": "Pinterest",
       "role": "Machine Learning Intern",
       "location": "Palo Alto, CA",
@@ -173,7 +184,7 @@
       "url": "https://www.pinterestcareers.com/jobs/?gh_jid=8138090"
     },
     {
-      "id": "j15",
+      "id": "j16",
       "company": "Pinterest",
       "role": "University Grad Software Engineer",
       "location": "Toronto, ON, Canada",
@@ -182,17 +193,6 @@
       "term": "New Grad 2027",
       "hasListing": true,
       "url": "https://www.pinterestcareers.com/jobs/?gh_jid=8138049"
-    },
-    {
-      "id": "j16",
-      "company": "Pinterest",
-      "role": "University Grad Machine Learning Engineer",
-      "location": "Toronto, ON, Canada",
-      "posted": "today",
-      "repo": "SimplifyJobs/New-Grad-Positions",
-      "term": "New Grad 2027",
-      "hasListing": true,
-      "url": "https://www.pinterestcareers.com/jobs/?gh_jid=8138065"
     },
     {
       "id": "j17",
@@ -209,7 +209,7 @@
       "id": "j18",
       "company": "Clay",
       "role": "Early Career Software Engineer",
-      "location": "NYC",
+      "location": "New York, NY",
       "posted": "today",
       "repo": "SimplifyJobs/New-Grad-Positions",
       "term": "New Grad 2027",
@@ -317,135 +317,135 @@
     },
     {
       "id": "j28",
-      "company": "Amazon",
-      "role": "Software Development Engineer - FinTech/Customer Service Tech",
-      "location": "Newark, NJ",
+      "company": "Microsoft",
+      "role": "Software Engineer- CoreAI",
+      "location": "Washington, DC",
       "posted": "1d ago",
       "repo": "speedyapply/2027-SWE-College-Jobs",
       "term": "New Grad 2027",
       "hasListing": true,
-      "url": "https://www.amazon.jobs/jobs/10564323/apply"
+      "url": "https://apply.careers.microsoft.com/careers/job/1970393556989020"
     },
     {
       "id": "j29",
-      "company": "Snap",
-      "role": "Software Engineer - Backend - Level 4",
-      "location": "Los Angeles, CA +3",
+      "company": "Amazon",
+      "role": "Software Development Engineer - ROBOTICS - Early Career - 2027",
+      "location": "North Reading, MA",
       "posted": "1d ago",
       "repo": "speedyapply/2027-SWE-College-Jobs",
       "term": "New Grad 2027",
       "hasListing": true,
-      "url": "https://snapchat.wd1.myworkdayjobs.com/en-US/sourced/job/Los-Angeles-California/Software-Engineer--Backend--Level-4_Q326SWEB2"
+      "url": "https://www.amazon.jobs/jobs/10567489/apply"
     },
     {
       "id": "j30",
-      "company": "Amazon",
-      "role": "Software Development Engineer Intern - AWS Database - 2027 - US",
-      "location": "Seattle, WA",
+      "company": "Microsoft",
+      "role": "Software Engineer - Forward Deployed Engineer",
+      "location": "Washington, DC",
       "posted": "1d ago",
       "repo": "speedyapply/2027-SWE-College-Jobs",
-      "term": "Summer 2027",
+      "term": "New Grad 2027",
       "hasListing": true,
-      "url": "https://www.amazon.jobs/jobs/10565667/apply"
+      "url": "https://apply.careers.microsoft.com/careers/job/1970393557004814"
     },
     {
       "id": "j31",
-      "company": "Stripe",
-      "role": "High School Internship - Software Engineering - Summer 2027",
-      "location": "Seattle, WA",
+      "company": "NVIDIA",
+      "role": "Systems Software Engineer - New College Grad 2026",
+      "location": "Hillsboro, OR",
+      "posted": "1d ago",
+      "repo": "speedyapply/2027-SWE-College-Jobs",
+      "term": "New Grad 2027",
+      "hasListing": true,
+      "url": "https://nvidia.wd5.myworkdayjobs.com/en-US/nvidiaexternalcareersite/job/US-OR-Hillsboro/Systems-Software-Engineer---New-College-Grad-2026_JR2017083"
+    },
+    {
+      "id": "j32",
+      "company": "Pinterest",
+      "role": "University Grad Software Engineer 2027 - USA",
+      "location": "Remote (San Francisco, CA)",
+      "posted": "1d ago",
+      "repo": "speedyapply/2027-SWE-College-Jobs",
+      "term": "New Grad 2027",
+      "hasListing": true,
+      "url": "https://www.pinterestcareers.com/jobs/?gh_jid=7838591"
+    },
+    {
+      "id": "j33",
+      "company": "Microsoft",
+      "role": "Software Engineer: Fullstack Product - Web + Services Intern Opportunities for University Students",
+      "location": "Washington, DC",
       "posted": "1d ago",
       "repo": "speedyapply/2027-SWE-College-Jobs",
       "term": "Summer 2027",
       "hasListing": true,
-      "url": "https://stripe.com/jobs/search?gh_jid=8241260"
-    },
-    {
-      "id": "j32",
-      "company": "PrizePicks",
-      "role": "Data Engineering Intern",
-      "location": "Atlanta, GA",
-      "posted": "1d ago",
-      "repo": "SimplifyJobs/Summer2027-Internships",
-      "term": "Summer 2027",
-      "hasListing": true,
-      "url": "http://prizepicks.com/position?gh_jid=8009358003"
-    },
-    {
-      "id": "j33",
-      "company": "General Dynamics Mission Systems",
-      "role": "Software Engineer Intern",
-      "location": "McLeansville, NC",
-      "posted": "1d ago",
-      "repo": "SimplifyJobs/Summer2027-Internships",
-      "term": "Summer 2027",
-      "hasListing": true,
-      "url": "https://careers-gdms.icims.com/jobs/74537/job?mobile=true&needsRedirect=false"
+      "url": "https://apply.careers.microsoft.com/careers/job/1970393556922922"
     },
     {
       "id": "j34",
-      "company": "L3Harris Technologies",
-      "role": "Associate Software Engineer",
-      "location": "Richardson, TX",
+      "company": "Microsoft",
+      "role": "Software Engineer: AI/ML & LLM Intern Opportunities for University Students - Redmond",
+      "location": "Washington, DC",
       "posted": "1d ago",
-      "repo": "SimplifyJobs/New-Grad-Positions",
-      "term": "New Grad 2027",
+      "repo": "speedyapply/2027-SWE-College-Jobs",
+      "term": "Summer 2027",
       "hasListing": true,
-      "url": "https://jobs.l3harris.com/job/Richardson-Associate,-Software-Engineer-TX-75080/1435709900/?ats=successfactors"
+      "url": "https://apply.careers.microsoft.com/careers/job/1970393556922929"
     },
     {
       "id": "j35",
-      "company": "L3Harris Technologies",
-      "role": "Software Engineer Intern",
-      "location": "Richardson, TX",
+      "company": "Microsoft",
+      "role": "Software Engineer: Cloud & Distributed Backend Intern Opportunities for University Students - Redmond",
+      "location": "Washington, DC",
       "posted": "1d ago",
-      "repo": "SimplifyJobs/Summer2027-Internships",
+      "repo": "speedyapply/2027-SWE-College-Jobs",
       "term": "Summer 2027",
       "hasListing": true,
-      "url": "https://jobs.l3harris.com/job/Richardson-Intern,-Software-Engineer-TX-75080/1435712100/?ats=successfactors"
+      "url": "https://apply.careers.microsoft.com/careers/job/1970393556922923"
     },
     {
       "id": "j36",
-      "company": "ION Group",
-      "role": "Software Developer",
-      "location": "Woking, UK",
+      "company": "Microsoft",
+      "role": "Software Engineer: Security & Identity Intern Opportunities for University Students - Redmond",
+      "location": "Washington, DC",
       "posted": "1d ago",
-      "repo": "SimplifyJobs/New-Grad-Positions",
-      "term": "New Grad 2027",
+      "repo": "speedyapply/2027-SWE-College-Jobs",
+      "term": "Summer 2027",
       "hasListing": true,
-      "url": "https://jobs.lever.co/ion/e973fefd-7180-4da9-a323-c212fc98cc05/apply"
+      "url": "https://apply.careers.microsoft.com/careers/job/1970393556922930"
     },
     {
       "id": "j37",
-      "company": "Capgemini",
-      "role": "Graduate Software Engineer Programme",
-      "location": "Telford, UK",
+      "company": "Microsoft",
+      "role": "Software Engineer: Intern Opportunities for University Students - CoreAI - Redmond - WA",
+      "location": "Washington, DC",
       "posted": "1d ago",
-      "repo": "SimplifyJobs/New-Grad-Positions",
-      "term": "New Grad 2027",
+      "repo": "speedyapply/2027-SWE-College-Jobs",
+      "term": "Summer 2027",
       "hasListing": true,
-      "url": "https://careers.capgemini.com/job/Telford-Graduate-Software-Engineering-Programme-2027/1443168333/?ats=successfactors"
+      "url": "https://apply.careers.microsoft.com/careers/job/1970393556951950"
     },
     {
       "id": "j38",
       "company": "Microsoft",
-      "role": "Software Engineer Intern - Azure Databases",
-      "location": "Redmond, WA",
+      "role": "Software Engineer: Data Platform/Analytics Intern Opportunities for University Students - Redmond",
+      "location": "Washington, DC",
       "posted": "1d ago",
-      "repo": "SimplifyJobs/Summer2027-Internships",
+      "repo": "speedyapply/2027-SWE-College-Jobs",
       "term": "Summer 2027",
       "hasListing": true,
-      "url": "https://apply.careers.microsoft.com/careers/job/1970393557002476"
+      "url": "https://apply.careers.microsoft.com/careers/job/1970393556922931"
     },
     {
       "id": "j39",
-      "company": "Amazon",
-      "role": "Applied Scientist - International Seller Services",
-      "location": "Seattle, WA",
+      "company": "Pinterest",
+      "role": "Software Engineer Intern 2027 - USA",
+      "location": "Remote (San Francisco, CA)",
       "posted": "1d ago",
-      "repo": "SimplifyJobs/New-Grad-Positions",
-      "term": "New Grad 2027",
+      "repo": "speedyapply/2027-SWE-College-Jobs",
+      "term": "Summer 2027",
       "hasListing": true,
-      "url": "https://amazon.jobs/en/jobs/10566351/applied-scientist-international-seller-services"
+      "url": "https://www.pinterestcareers.com/jobs/?gh_jid=7838577"
     }
   ]
 }
