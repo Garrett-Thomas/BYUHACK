@@ -3,7 +3,7 @@ import type { Contact, Job, Profile } from '../types';
 import { STATUS_CLASS, STATUS_CYCLE } from '../data/constants';
 import { draftIntroRequest } from '../lib/drafting';
 import AiToolbar from '../components/AiToolbar';
-import CopyButton from '../components/CopyButton';
+import CopyOpenLink from '../components/CopyOpenLink';
 import CardHead from './CardHead';
 
 interface Props {
@@ -54,8 +54,7 @@ function MutualCard({ job, contact: c, profile, onChange, open, onToggle }: Prop
             onApply={(text) => onChange({ text })}
             extra={
               <div className="links">
-                <CopyButton className="btn-text" label="Copy message" text={c.text} />
-                <a href={m.profileUrl} target="_blank" rel="noopener">Open LinkedIn profile ↗</a>
+                <CopyOpenLink text={c.text} href={m.profileUrl} />
                 {other && (
                   <button className="btn-text" type="button"
                     onClick={() => onChange({ mutualIndex: 1 - i, text: draftIntroRequest(other, c, job, profile) })}>
