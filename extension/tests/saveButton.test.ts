@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { EMPLOYEES_WAIT_MS, mountSaveButton, type SaveButtonHandle } from '../src/saveButton';
+import { EMPLOYEES_WAIT_MS, IN_PLACE_WAIT_MS, mountSaveButton, type SaveButtonHandle } from '../src/saveButton';
 import type { Message, SaveCompanyResponse } from '../src/types';
 
 // The module remembers the last employees link it saw (to ignore a stale one after SPA navigation),
@@ -18,7 +18,7 @@ let a = '';
 let b = '';
 
 function mount(slug: string, company: string, send: (m: Message) => Promise<unknown>, navigate = vi.fn()): ReturnType<typeof vi.fn> {
-  handle = mountSaveButton({ slug, company, send, navigate });
+  handle = mountSaveButton({ slug, company, send, navigate, inPlace: false });
   return navigate;
 }
 
@@ -136,5 +136,32 @@ describe('save button', () => {
     document.body.innerHTML = `<main><h1>Second Co</h1>${EMPLOYEES([b])}</main>`;
     await vi.advanceTimersByTimeAsync(500);
     expect(saveBtn().textContent).toBe('Save "Second Co" as "Acme"');
+  });
+
+  it('reloads an in-place company page once when the employees link is missing', () => {
+    const reload = vi.fn();
+    const slug = 'inplace-' + fresh();
+    handle = mountSaveButton({ slug, company: 'Acme', send: vi.fn(), inPlace: true, reload });
+    vi.advanceTimersByTime(IN_PLACE_WAIT_MS);
+    expect(reload).toHaveBeenCalledTimes(1);
+    handle.destroy();
+    // Same company in the same tab again (e.g. the link is really absent): no second reload.
+    const reload2 = vi.fn();
+    handle = mountSaveButton({ slug, company: 'Acme', send: vi.fn(), inPlace: true, reload: reload2 });
+    vi.advanceTimersByTime(IN_PLACE_WAIT_MS);
+    expect(reload2).not.toHaveBeenCalled();
+  });
+
+  it('does not reload when the link shows up, or when the page was fully loaded', () => {
+    const reload = vi.fn();
+    document.body.innerHTML = `<main>${EMPLOYEES([a])}</main>`;
+    handle = mountSaveButton({ slug: 'loaded-' + fresh(), company: 'Acme', send: vi.fn(), inPlace: true, reload });
+    vi.advanceTimersByTime(IN_PLACE_WAIT_MS);
+    expect(reload).not.toHaveBeenCalled();
+    handle.destroy();
+    document.body.innerHTML = '';
+    handle = mountSaveButton({ slug: 'full-' + fresh(), company: 'Acme', send: vi.fn(), inPlace: false, reload });
+    vi.advanceTimersByTime(EMPLOYEES_WAIT_MS);
+    expect(reload).not.toHaveBeenCalled();
   });
 });

@@ -22,6 +22,40 @@ export interface SaveButtonOptions {
   send?: (msg: Message) => Promise<unknown>;
   /** Navigation after a successful save. Defaults to location.replace. */
   navigate?: (url: string) => void;
+  /** Whether this company page was rendered in place by LinkedIn's SPA. Defaults to landedInPlace(slug). */
+  inPlace?: boolean;
+  /** Full reload of the page. Defaults to location.reload. */
+  reload?: () => void;
+}
+
+/** How long an in-place company page gets to show its employees link before the one-time reload. */
+export const IN_PLACE_WAIT_MS = 3000;
+
+/**
+ * LinkedIn renders a company page reached from search results in place, and that version shows the
+ * employee count as plain text, without the `currentCompany` link. A full load of the same URL has
+ * the link. True when the document was originally loaded for a different page than this company.
+ */
+export function landedInPlace(slug: string): boolean {
+  const nav = performance.getEntriesByType?.('navigation')?.[0] as PerformanceNavigationTiming | undefined;
+  if (!nav?.name) return false;
+  try {
+    return new URL(nav.name).pathname.split('/')[2]?.toLowerCase() !== slug.toLowerCase();
+  } catch {
+    return false;
+  }
+}
+
+/** Reload at most once per company per tab, so a page that truly has no link can't loop. */
+function claimReload(slug: string): boolean {
+  const key = 'warmline-reloaded:' + slug.toLowerCase();
+  try {
+    if (sessionStorage.getItem(key)) return false;
+    sessionStorage.setItem(key, '1');
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // A company page reached by SPA navigation can briefly still show the previous company's
@@ -78,14 +112,17 @@ function setText(node: HTMLElement, text: string): void {
 /**
  * Inject the fixed-position "Save <LinkedIn name> as <company>" button on a company page. Inline
  * styles only; every name goes in through textContent. The button appears once the page's employees
- * link (`main a[href*="currentCompany"]`) is present, or disabled after 10s without one. It reads
- * nothing else, clicks nothing, scrolls nothing. The one navigation, `location.replace` to the scoped
- * people search, happens only after the user clicks and the server confirms.
+ * link (`main a[href*="currentCompany"]`) is present, or disabled after 10s without one. A page LinkedIn
+ * rendered in place gets one full reload first (see landedInPlace). It reads nothing else, clicks
+ * nothing, scrolls nothing. Besides that reload, the only navigation is `location.replace` to the
+ * scoped people search, after the user clicks and the server confirms.
  */
 export function mountSaveButton(opts: SaveButtonOptions): SaveButtonHandle {
   const { slug, company } = opts;
   const send = opts.send ?? ((msg: Message) => chrome.runtime.sendMessage(msg));
   const navigate = opts.navigate ?? ((url: string) => location.replace(url));
+  const reload = opts.reload ?? (() => location.reload());
+  const inPlace = opts.inPlace ?? landedInPlace(slug);
   const stale = lastSlug && lastSlug !== slug ? lastIdsKey : '';
 
   let destroyed = false;
@@ -95,6 +132,7 @@ export function mountSaveButton(opts: SaveButtonOptions): SaveButtonHandle {
   let error = '';
   let debounce: ReturnType<typeof setTimeout> | undefined;
   let waitTimer: ReturnType<typeof setTimeout> | undefined;
+  let reloadTimer: ReturnType<typeof setTimeout> | undefined;
 
   const host = el('div', HOST_CSS);
   host.setAttribute('data-warmline', 'save-company');
@@ -149,6 +187,7 @@ export function mountSaveButton(opts: SaveButtonOptions): SaveButtonHandle {
     observer.disconnect();
     clearTimeout(debounce);
     clearTimeout(waitTimer);
+    clearTimeout(reloadTimer);
     host.remove();
   };
 
@@ -187,6 +226,11 @@ export function mountSaveButton(opts: SaveButtonOptions): SaveButtonHandle {
 
   // Observe the document, not documentElement, which may not exist yet at document_start.
   observer.observe(document, { childList: true, subtree: true });
+  if (inPlace) {
+    reloadTimer = setTimeout(() => {
+      if (!destroyed && !busy && currentIds().length === 0 && claimReload(slug)) reload();
+    }, IN_PLACE_WAIT_MS);
+  }
   waitTimer = setTimeout(() => {
     timedOut = true;
     check();

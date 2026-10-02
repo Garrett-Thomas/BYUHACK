@@ -35,9 +35,11 @@ at all.
    is captured on the search page.
 2. Click into the right company. On its `/company/<slug>/` page, in that tab only, the extension shows
    a button at the top right: **Save "<LinkedIn name>" as "<Warmline company>"** (with a x to
-   dismiss it). It is re-shown when you move to another company page in the same tab. If the page has
-   no "N employees" link (`main a[href*="currentCompany"]`) within 10s, the button is disabled and
-   says "LinkedIn doesn't list employees for this page".
+   dismiss it). It is re-shown when you move to another company page in the same tab. When you click
+   into a company from search results, LinkedIn renders the page in place and leaves the "N employees"
+   count as plain text, so the extension reloads that page once to get the full version with the link.
+   If there is still no "N employees" link (`main a[href*="currentCompany"]`) within 10s, the button
+   is disabled and says "LinkedIn doesn't list employees for this page".
 3. Click it. The background worker reads the company ids from that employees link and saves
    `{linkedinSlug, linkedinName, linkedinIds}` with `PUT /api/v1/company-scopes/<company>`. On success the tab
    switches to **people mode** and the page goes to the 1st + 2nd degree people search scoped to those ids
