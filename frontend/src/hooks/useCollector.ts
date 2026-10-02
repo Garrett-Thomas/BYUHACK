@@ -39,8 +39,9 @@ const mergeContacts = (cur: Contact[], next: Contact[], job: Job, p: Profile): C
     const changed = c.name !== n.name || c.degree !== n.degree || JSON.stringify(c.mutuals) !== JSON.stringify(n.mutuals);
     return !c.edited && changed ? { ...u, text: draftContact(u, job, p) } : u;
   };
+  // The server is the source of truth for who exists: people deleted there drop out here too.
   return [
-    ...cur.map((c) => { const n = byId.get(c.id); return n ? refresh(c, n) : c; }),
+    ...cur.flatMap((c) => { const n = byId.get(c.id); return n ? [refresh(c, n)] : []; }),
     ...next.filter((c) => !have.has(c.id)),
   ];
 };

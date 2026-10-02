@@ -35,11 +35,14 @@ export default function DonePanel({ job, d, profile, scope, polling, onFind, onR
       {busy[b] ? 'Retrying…' : 'Retry'}
     </button>
   );
+  // A 2nd-degree person is only useful through a shared 1st-degree connection, so people saved
+  // before mutuals were tracked are hidden until a re-capture of the 2nd-degree search adds theirs.
+  const noMutual = contacts.filter((c) => c.degree === '2nd' && c.mutuals.length === 0).length;
   const sections = [
     { net: 'F' as const, title: '1st-degree connections', sub: 'Ask for a referral directly.', none: 'No 1st-degree connections saved yet.',
       list: contacts.filter((c) => c.degree === '1st') },
     { net: 'S' as const, title: '2nd-degree connections', sub: 'Reach them through a mutual connection.', none: 'No 2nd-degree connections saved yet.',
-      list: contacts.filter((c) => c.degree === '2nd') },
+      list: contacts.filter((c) => c.degree === '2nd' && c.mutuals.length > 0) },
     { net: 'O' as const, title: 'Other people at ' + job.company, sub: '3rd-degree, and saved profiles with no degree.', none: 'No other people saved yet.',
       list: contacts.filter((c) => c.degree !== '1st' && c.degree !== '2nd') },
   ];
@@ -49,7 +52,7 @@ export default function DonePanel({ job, d, profile, scope, polling, onFind, onR
   return (
     <>
       <Tabs id="job-tabs" value={tab} onChange={setTab} tabs={[
-        { value: 'people', label: 'Find connections', count: contacts.length },
+        { value: 'people', label: 'Find connections', count: contacts.length - noMutual },
         { value: 'email', label: 'Email hiring team' },
       ]} />
       {tab === 'people' ? (
@@ -81,11 +84,20 @@ export default function DonePanel({ job, d, profile, scope, polling, onFind, onR
                     </a>
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--ink-3)', marginBottom: 12 }}>{s.sub}</div>
+                  {s.net === 'S' && noMutual > 0 && (
+                    <div style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 12 }}>
+                      {noMutual + (noMutual === 1 ? ' person was' : ' people were') + ' saved before mutual connections were tracked. '}
+                      <a href={linkedInPeopleUrl(job.company, ['S'], scope.linkedinIds)} target="_blank" rel="noopener" onClick={onFind}>
+                        Re-open the 2nd-degree search ↗
+                      </a>
+                      {' to load them.'}
+                    </div>
+                  )}
                   {s.list.length === 0 ? (
                     <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>{s.none}</div>
                   ) : (
                     <div className="ccards">
-                      {[...s.list].sort(newestFirst).map((c) => c.degree === '2nd' && c.mutuals.length > 0 ? (
+                      {[...s.list].sort(newestFirst).map((c) => c.degree === '2nd' ? (
                         <PairRow key={c.id} job={job} contact={c} profile={profile}
                           onChange={(patch) => onContact(c.id, patch)} />
                       ) : (
