@@ -456,10 +456,16 @@ function renderTable() {
   const rows = filteredRows();
   const body = rows.map((j) => {
     const st = statusOf(j.id);
-    return h('button', {
-      class: 'tbl-row', type: 'button',
+    // A <div role="button"> rather than a real <button>, so the repo link below
+    // (a real <a>, for proper ctrl/cmd-click and middle-click) can nest inside
+    // it — a <button> can't legally contain interactive content.
+    return h('div', {
+      class: 'tbl-row', role: 'button', tabindex: '0',
       style: 'grid-template-columns:' + cols,
       onclick: () => openJob(j, 'jobs'),
+      onkeydown: (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openJob(j, 'jobs'); }
+      },
     }, [
       h('div', { class: 'c-company', text: j.company }),
       h('div', { class: 'c-role' }, [
@@ -468,7 +474,10 @@ function renderTable() {
       ]),
       h('div', { class: 'c-loc', text: j.location }),
       h('div', { class: 'c-posted num', text: j.posted }),
-      state.showRepo ? h('div', { class: 'c-repo', text: j.repo }) : null,
+      state.showRepo ? h('div', { class: 'c-repo' }, h('a', {
+        href: 'https://github.com/' + j.repo, target: '_blank', rel: 'noopener',
+        text: j.repo, onclick: (e) => e.stopPropagation(),
+      })) : null,
       h('div', { class: 'c-status' }, h('span', { class: st.cls, text: st.text })),
     ]);
   });
