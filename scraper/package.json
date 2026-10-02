@@ -1,0 +1,13 @@
+{
+  "name": "warmline-scraper",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Pulls daily internship/new-grad listings from public GitHub job-board repos for the Warmline frontend.",
+  "scripts": {
+    "scrape": "node scrape-jobs.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
