@@ -475,7 +475,8 @@ function renderTable() {
       h('div', { class: 'c-loc', text: j.location }),
       h('div', { class: 'c-posted num', text: j.posted }),
       state.showRepo ? h('div', { class: 'c-repo' }, h('a', {
-        href: 'https://github.com/' + j.repo, target: '_blank', rel: 'noopener',
+        href: j.url || ('https://github.com/' + j.repo), target: '_blank', rel: 'noopener',
+        title: j.url ? 'Open the listing: ' + j.url : j.repo,
         text: j.repo, onclick: (e) => e.stopPropagation(),
       })) : null,
       h('div', { class: 'c-status' }, h('span', { class: st.cls, text: st.text })),
