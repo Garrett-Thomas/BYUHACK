@@ -71,8 +71,9 @@ const state = {
   jobId: null,
   prevScreen: 'jobs',
   query: '',
-  companyFilter: '',
-  locationFilter: '',
+  companyFilters: [],
+  locationFilters: [],
+  termFilters: [],
   companyJobs: [],
   data: {},
   profile: { ...DEFAULT_PROFILE },
@@ -363,6 +364,52 @@ function copyToClipboard(text, btn, label) {
 
 /* ===================== screen: jobs ===================== */
 
+/** A pill button that opens a checklist panel — multi-select stand-in for a native <select>. */
+function multiSelect({ id, allLabel, ariaLabel, options, selected, onChange }) {
+  const btn = h('button', {
+    class: 'sel msel-btn', type: 'button', id, 'aria-haspopup': 'listbox',
+    'aria-label': ariaLabel,
+  });
+  const panel = h('div', { class: 'msel-panel', role: 'listbox', 'aria-multiselectable': 'true' });
+  panel.hidden = true;
+
+  function syncBtn() {
+    btn.textContent = selected.length === 0 ? allLabel
+      : selected.length === 1 ? selected[0]
+      : selected.length + ' selected';
+  }
+  syncBtn();
+
+  panel.replaceChildren(frag(options.map((opt) => {
+    const cb = h('input', {
+      type: 'checkbox', checked: selected.includes(opt) ? 'checked' : null,
+      onchange: () => {
+        if (cb.checked) selected.push(opt);
+        else { const i = selected.indexOf(opt); if (i >= 0) selected.splice(i, 1); }
+        syncBtn();
+        onChange();
+      },
+    });
+    return h('label', { class: 'msel-opt' }, [cb, h('span', { text: opt })]);
+  })));
+
+  btn.addEventListener('click', (e) => { e.stopPropagation(); panel.hidden = !panel.hidden; });
+
+  return h('div', { class: 'msel' }, [btn, panel]);
+}
+
+// Close any open multi-select panel on an outside click. Registered once at
+// module load rather than per-dropdown, so repeated renders don't pile up
+// duplicate document-level listeners.
+document.addEventListener('click', (e) => {
+  document.querySelectorAll('.msel-panel:not([hidden])').forEach((panel) => {
+    const btn = panel.previousElementSibling;
+    if (!panel.contains(e.target) && e.target !== btn) panel.hidden = true;
+  });
+});
+
+const categoryOf = (job) => (/new grad/i.test(job.term || '') ? 'New Grad' : 'Internship');
+
 function gridCols() {
   return state.showRepo
     ? 'minmax(0,1fr) minmax(0,1.8fr) minmax(0,1.1fr) 64px minmax(0,1.4fr) 140px'
@@ -373,8 +420,9 @@ function filteredRows() {
   const q = state.query.trim().toLowerCase();
   return JOBS.filter((j) =>
     (!q || (j.role + ' ' + j.company).toLowerCase().includes(q)) &&
-    (!state.companyFilter || j.company === state.companyFilter) &&
-    (!state.locationFilter || j.location === state.locationFilter));
+    (!state.companyFilters.length || state.companyFilters.includes(j.company)) &&
+    (!state.locationFilters.length || state.locationFilters.includes(j.location)) &&
+    (!state.termFilters.length || state.termFilters.includes(categoryOf(j))));
 }
 
 function renderTable() {
@@ -412,7 +460,7 @@ function renderTable() {
     h('div', { text: 'No listings match these filters.' }),
     h('button', { class: 'btn btn-solid', type: 'button',
       text: 'Find connections at a company instead',
-      onclick: () => companySearch(state.companyFilter || state.query || 'Linear') }),
+      onclick: () => companySearch(state.companyFilters[0] || state.query || 'Linear') }),
   ]);
 
   card.replaceChildren(frag([head].concat(rows.length ? body : [empty])));
@@ -430,33 +478,42 @@ function syncedLabel() {
 
 function renderJobs() {
   const uniq = (xs) => Array.from(new Set(xs)).sort();
-  const hasFilters = !!(state.query || state.companyFilter || state.locationFilter);
+  const hasFilters = () => !!(state.query || state.companyFilters.length ||
+    state.locationFilters.length || state.termFilters.length);
 
   const q = h('input', {
     class: 'inp', id: 'q', type: 'search', value: state.query,
     placeholder: 'Search role title…', 'aria-label': 'Search role title',
     oninput: (e) => { state.query = e.target.value; renderTable(); syncClear(); },
   });
-  const selCompany = h('select', { class: 'sel', id: 'f-company', 'aria-label': 'Filter by company',
-    oninput: (e) => { state.companyFilter = e.target.value; renderTable(); syncClear(); } },
-    [h('option', { value: '', text: 'All companies' })].concat(
-      uniq(JOBS.map((j) => j.company)).map((c) =>
-        h('option', { value: c, text: c, selected: state.companyFilter === c ? 'selected' : null }))));
-  const selLocation = h('select', { class: 'sel', id: 'f-location', 'aria-label': 'Filter by location',
-    oninput: (e) => { state.locationFilter = e.target.value; renderTable(); syncClear(); } },
-    [h('option', { value: '', text: 'All locations' })].concat(
-      uniq(JOBS.map((j) => j.location)).map((l) =>
-        h('option', { value: l, text: l, selected: state.locationFilter === l ? 'selected' : null }))));
+  const selCompany = multiSelect({
+    id: 'f-company', allLabel: 'All companies', ariaLabel: 'Filter by company',
+    options: uniq(JOBS.map((j) => j.company)), selected: state.companyFilters,
+    onChange: () => { renderTable(); syncClear(); },
+  });
+  const selLocation = multiSelect({
+    id: 'f-location', allLabel: 'All locations', ariaLabel: 'Filter by location',
+    options: uniq(JOBS.map((j) => j.location)), selected: state.locationFilters,
+    onChange: () => { renderTable(); syncClear(); },
+  });
+  const selType = multiSelect({
+    id: 'f-type', allLabel: 'Internship or new grad', ariaLabel: 'Filter by internship or new grad',
+    options: ['Internship', 'New Grad'], selected: state.termFilters,
+    onChange: () => { renderTable(); syncClear(); },
+  });
 
   const clearBtn = h('button', { class: 'btn btn-under', type: 'button', text: 'Clear',
     onclick: () => {
-      state.query = ''; state.companyFilter = ''; state.locationFilter = '';
-      q.value = ''; selCompany.value = ''; selLocation.value = '';
-      renderTable(); syncClear();
+      state.query = ''; state.companyFilters = []; state.locationFilters = []; state.termFilters = [];
+      renderJobsInto();
     } });
-  clearBtn.hidden = !hasFilters;
+  clearBtn.hidden = !hasFilters();
   function syncClear() {
-    clearBtn.hidden = !(state.query || state.companyFilter || state.locationFilter);
+    clearBtn.hidden = !hasFilters();
+  }
+  function renderJobsInto() {
+    view().replaceChildren(renderJobs());
+    renderTable();
   }
 
   return frag([
@@ -469,7 +526,7 @@ function renderJobs() {
       h('button', { class: 'btn btn-ghost', type: 'button',
         text: 'No listing? Search a company →', onclick: () => go('company') }),
     ]),
-    h('div', { class: 'filters' }, [q, selCompany, selLocation, clearBtn]),
+    h('div', { class: 'filters' }, [q, selCompany, selLocation, selType, clearBtn]),
     h('div', { class: 'card', id: 'tbl' }),
   ]);
 }
