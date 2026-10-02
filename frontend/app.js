@@ -398,6 +398,23 @@ function multiSelect({ id, allLabel, ariaLabel, options, selected, onChange }) {
   return h('div', { class: 'msel' }, [btn, panel]);
 }
 
+/** A toggle pill backed by a shared selection array — independent checkboxes, not a radio group. */
+function pillToggle(label, selectedArr, onChange) {
+  const isOn = () => selectedArr.includes(label);
+  const btn = h('button', {
+    class: 'pill-toggle' + (isOn() ? ' on' : ''),
+    type: 'button', text: label, 'aria-pressed': String(isOn()),
+  });
+  btn.addEventListener('click', () => {
+    const i = selectedArr.indexOf(label);
+    if (i >= 0) selectedArr.splice(i, 1); else selectedArr.push(label);
+    btn.classList.toggle('on', isOn());
+    btn.setAttribute('aria-pressed', String(isOn()));
+    onChange();
+  });
+  return btn;
+}
+
 // Close any open multi-select panel on an outside click. Registered once at
 // module load rather than per-dropdown, so repeated renders don't pile up
 // duplicate document-level listeners.
@@ -496,11 +513,9 @@ function renderJobs() {
     options: uniq(JOBS.map((j) => j.location)), selected: state.locationFilters,
     onChange: () => { renderTable(); syncClear(); },
   });
-  const selType = multiSelect({
-    id: 'f-type', allLabel: 'Internship or new grad', ariaLabel: 'Filter by internship or new grad',
-    options: ['Internship', 'New Grad'], selected: state.termFilters,
-    onChange: () => { renderTable(); syncClear(); },
-  });
+  const typeGroup = h('div', { class: 'pill-group', role: 'group', 'aria-label': 'Filter by internship or new grad' },
+    ['Internship', 'New Grad'].map((label) =>
+      pillToggle(label, state.termFilters, () => { renderTable(); syncClear(); })));
 
   const clearBtn = h('button', { class: 'btn btn-under', type: 'button', text: 'Clear',
     onclick: () => {
@@ -526,7 +541,7 @@ function renderJobs() {
       h('button', { class: 'btn btn-ghost', type: 'button',
         text: 'No listing? Search a company →', onclick: () => go('company') }),
     ]),
-    h('div', { class: 'filters' }, [q, selCompany, selLocation, selType, clearBtn]),
+    h('div', { class: 'filters' }, [q, selCompany, selLocation, typeGroup, clearBtn]),
     h('div', { class: 'card', id: 'tbl' }),
   ]);
 }
