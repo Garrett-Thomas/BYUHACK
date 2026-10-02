@@ -226,15 +226,40 @@ export const openApiDocument = {
           degree: { type: "string", enum: ["1st", "2nd", "3rd"], nullable: true, description: "LinkedIn connection degree. Overwritten on every upsert (omitted = cleared)." },
           notes: { type: "string", nullable: true },
           tags: { type: "array", items: { type: "string" }, nullable: true },
+          mutuals: {
+            type: "array",
+            maxItems: 5,
+            nullable: true,
+            items: { $ref: "#/components/schemas/Mutual" },
+            description: "Named mutual connections, in on-page order. Replaced on every upsert (omitted = cleared).",
+          },
+          mutualCount: {
+            type: "integer",
+            minimum: 0,
+            nullable: true,
+            description: "Total mutual connections LinkedIn reports, including unnamed ones. Overwritten on every upsert (omitted = cleared).",
+          },
           capturedAt: { type: "string", format: "date-time", example: "2026-10-02T00:00:00.000Z" },
           extractorVersion: { type: "string", example: "1.0.0" },
+        },
+      },
+      Mutual: {
+        type: "object",
+        required: ["name", "profileUrl"],
+        properties: {
+          name: { type: "string", minLength: 1, maxLength: 200, example: "Sam Mutual" },
+          profileUrl: {
+            type: "string",
+            description: "LinkedIn profile URL; normalized to https://www.linkedin.com/in/<slug>/ on save.",
+            example: "https://www.linkedin.com/in/sam-mutual/",
+          },
         },
       },
       Connection: {
         type: "object",
         required: [
           "id", "source", "sourceProfileUrl", "name", "headline", "company", "location", "degree", "notes",
-          "tags", "capturedAt", "extractorVersion", "createdAt", "updatedAt",
+          "tags", "mutuals", "mutualCount", "capturedAt", "extractorVersion", "createdAt", "updatedAt",
         ],
         properties: {
           id: { type: "string", format: "uuid" },
@@ -247,6 +272,8 @@ export const openApiDocument = {
           degree: { type: "string", enum: ["1st", "2nd", "3rd"], nullable: true },
           notes: { type: "string", nullable: true },
           tags: { type: "array", items: { type: "string" } },
+          mutuals: { type: "array", items: { $ref: "#/components/schemas/Mutual" } },
+          mutualCount: { type: "integer", minimum: 0, nullable: true },
           capturedAt: { type: "string", format: "date-time" },
           extractorVersion: { type: "string" },
           createdAt: { type: "string", format: "date-time" },

@@ -1,4 +1,4 @@
-import type { Profile } from '../types';
+import type { Mutual, Profile } from '../types';
 
 export class ApiError extends Error {
   status: number;
@@ -21,6 +21,8 @@ export interface ApiConnection {
   notes: string | null;
   degree: '1st' | '2nd' | '3rd' | null;
   tags: string[];
+  mutuals: Mutual[];
+  mutualCount: number | null;
   capturedAt: string;
   extractorVersion: string;
   createdAt: string;

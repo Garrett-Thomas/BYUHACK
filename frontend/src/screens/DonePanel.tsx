@@ -2,6 +2,7 @@ import type { Branch, Contact, Email, Job, JobData, Profile } from '../types';
 import type { CompanyScope } from '../lib/api';
 import { linkedInPeopleUrl } from '../lib/format';
 import ContactCard from './ContactCard';
+import PairRow from './PairRow';
 import FindCompany from './FindCompany';
 import EmailComposer from './EmailComposer';
 
@@ -69,7 +70,10 @@ export default function DonePanel({ job, d, profile, scope, polling, onFind, onR
                   <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>{s.none}</div>
                 ) : (
                   <div className="ccards">
-                    {[...s.list].sort(newestFirst).map((c) => (
+                    {[...s.list].sort(newestFirst).map((c) => c.degree === '2nd' && c.mutuals.length > 0 ? (
+                      <PairRow key={c.id} job={job} contact={c} profile={profile}
+                        onChange={(patch) => onContact(c.id, patch)} />
+                    ) : (
                       <ContactCard key={c.id} jobId={job.id} contact={c} profile={profile}
                         onChange={(patch) => onContact(c.id, patch)} />
                     ))}

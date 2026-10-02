@@ -1,5 +1,5 @@
 import { clearQueue, drainQueue, submit } from './queue';
-import { isCompanyId, MAX_COMPANY_IDS } from './extractors/common';
+import { isCompanyId, MAX_COMPANY_IDS, profileUrlFrom } from './extractors/common';
 import { isFresh, registrationFromUrl, shouldCapture, showSaveButton } from './registration';
 import { putCompanyScope } from './scopes';
 import { loadSettings } from './settings';
@@ -10,6 +10,7 @@ const SEEN_KEY = 'seenVisits';
 const MAX_SEEN = 2000;
 const REG_PREFIX = 'registration:';
 const MAX_NAME_LENGTH = 200;
+const MAX_MUTUALS = 2;
 
 function ensureAlarm(): void {
   void chrome.alarms.get(ALARM).then((a) => {
@@ -81,6 +82,17 @@ function isValidSave(m: Message): m is Extract<Message, { type: 'saveCompany' }>
   );
 }
 
+function isValidMutual(x: unknown): boolean {
+  if (typeof x !== 'object' || x === null) return false;
+  const { name, profileUrl } = x as { name?: unknown; profileUrl?: unknown };
+  return (
+    typeof name === 'string' &&
+    name.length > 0 &&
+    typeof profileUrl === 'string' &&
+    profileUrlFrom(profileUrl) !== null
+  );
+}
+
 function isValidCapture(m: Message): m is Extract<Message, { type: 'capture' }> {
   if (m.type !== 'capture') return false;
   const r = m.record;
@@ -92,7 +104,11 @@ function isValidCapture(m: Message): m is Extract<Message, { type: 'capture' }> 
     (r.degree === '1st' || r.degree === '2nd' || r.degree === '3rd') &&
     typeof r.sourceProfileUrl === 'string' &&
     typeof r.name === 'string' &&
-    r.name.length > 0
+    r.name.length > 0 &&
+    Array.isArray(r.mutuals) &&
+    r.mutuals.length <= MAX_MUTUALS &&
+    r.mutuals.every(isValidMutual) &&
+    (r.mutualCount === null || (typeof r.mutualCount === 'number' && Number.isInteger(r.mutualCount) && r.mutualCount >= 0))
   );
 }
 

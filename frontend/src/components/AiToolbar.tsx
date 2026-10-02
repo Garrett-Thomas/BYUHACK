@@ -10,10 +10,11 @@ interface Props {
   profile: Profile;
   onApply: (text: string) => void;
   extra?: ReactNode;
+  maxChars?: number; // default: none for the email, 300 (LinkedIn note) otherwise
 }
 
 /** Preset chips + prompt row + Rewrite button, shared by notes and the email. */
-export default function AiToolbar({ aiKey, presets, text, profile, onApply, extra }: Props) {
+export default function AiToolbar({ aiKey, presets, text, profile, onApply, extra, maxChars }: Props) {
   const [value, setValue] = useState('');
   const [busy, setBusy] = useState(false);
   const isEmail = aiKey.endsWith(':email');
@@ -22,7 +23,7 @@ export default function AiToolbar({ aiKey, presets, text, profile, onApply, extr
     const ins = instruction.trim();
     if (!ins || busy) return;
     setBusy(true);
-    const out = await rewriteText(text, ins, profile, isEmail);
+    const out = await rewriteText(text, ins, profile, maxChars ?? (isEmail ? 0 : 300));
     onApply(out.trim());
     setValue('');
     setBusy(false);

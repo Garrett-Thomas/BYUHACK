@@ -10,6 +10,8 @@ export interface Job {
   url?: string;
 }
 
+export interface Mutual { name: string; profileUrl: string }
+
 export type ContactStatus = 'Not sent' | 'Sent' | 'Replied';
 
 export interface Contact {
@@ -22,6 +24,9 @@ export interface Contact {
   status: ContactStatus;
   text: string;
   updatedAt: string;
+  mutuals: Mutual[];
+  mutualCount: number | null;
+  mutualIndex: number; // which mutual the intro request is addressed to
 }
 
 export interface Email {

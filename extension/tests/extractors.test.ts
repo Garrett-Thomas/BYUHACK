@@ -18,6 +18,7 @@ describe('people-search extractor', () => {
       'Riley Placeholder',
       'Morgan Testperson',
       'Taylor Fakename',
+      'Sam Singlemutual',
       'Avery Nobody',
     ]);
   });
@@ -29,6 +30,7 @@ describe('people-search extractor', () => {
       ['Riley Placeholder', '3rd'],
       ['Morgan Testperson', '1st'],
       ['Taylor Fakename', '2nd'],
+      ['Sam Singlemutual', '2nd'],
       ['Avery Nobody', '3rd'], // "3rd+" is stored as "3rd"
     ]);
   });
@@ -46,6 +48,7 @@ describe('people-search extractor', () => {
       'https://www.linkedin.com/in/riley-placeholder-7a8b9c/',
       'https://www.linkedin.com/in/morgan-testperson-0d1e2f/',
       'https://www.linkedin.com/in/taylor-fakename-3a4b5c/',
+      'https://www.linkedin.com/in/sam-singlemutual-8a9b0c/',
       'https://www.linkedin.com/in/avery-nobody-6d7e8f/',
     ]);
   });
@@ -63,7 +66,7 @@ describe('people-search extractor', () => {
   it('sets constant fields', () => {
     for (const r of records) {
       expect(r.source).toBe('linkedin');
-      expect(r.extractorVersion).toBe('1.2.0');
+      expect(r.extractorVersion).toBe('1.3.0');
       expect(r.tags).toEqual([]);
       expect(Number.isNaN(Date.parse(r.capturedAt))).toBe(false);
     }
@@ -84,16 +87,128 @@ describe('people-search extractor', () => {
   it('drops a card with no degree text', () => {
     const doc = new DOMParser().parseFromString(
       `<div role="listitem"><p><a href="https://www.linkedin.com/in/no-degree-1/">No Degree</a></p><div><p><span>Engineer</span></p></div></div>
-       <div role="listitem"><p><a href="https://www.linkedin.com/in/has-degree-2/">Has Degree</a><span>\u00b7 2nd</span></p><div><p><span>Engineer</span></p></div></div>`,
+       <div role="listitem"><p><a href="https://www.linkedin.com/in/has-degree-2/">Has Degree</a><span>\u00b7 2nd</span></p><div><p><span>Engineer</span></p></div><p><a href="https://www.linkedin.com/in/friend-1/">Friend One</a> is a mutual connection</p></div>`,
       'text/html',
     );
     expect(extractSearchResults(doc).map((r) => [r.name, r.degree])).toEqual([['Has Degree', '2nd']]);
   });
 });
 
+describe('mutual connections', () => {
+  const records = extractSearchResults(load('people-search.html'));
+  const by = Object.fromEntries(records.map((r) => [r.name, r]));
+
+  it('reads "A & B are mutual connections" (with a followers suffix) as two mutuals, count 2', () => {
+    expect(by['Casey Sample']?.mutuals).toEqual([
+      { name: 'Pat Mutual', profileUrl: 'https://www.linkedin.com/in/pat-mutual-2a/' },
+      { name: 'Sky Connector', profileUrl: 'https://www.linkedin.com/in/sky-connector-2b/' },
+    ]);
+    expect(by['Casey Sample']?.mutualCount).toBe(2);
+  });
+
+  it('reads "A is a mutual connection" as one mutual, count 1', () => {
+    expect(by['Sam Singlemutual']?.mutuals).toEqual([
+      { name: 'Quinn Common', profileUrl: 'https://www.linkedin.com/in/quinn-common-8a/' },
+    ]);
+    expect(by['Sam Singlemutual']?.mutualCount).toBe(1);
+  });
+
+  it('reads "A, B & 7 other mutual connections" as two mutuals, count 9', () => {
+    expect(by['Taylor Fakename']?.mutuals.map((m) => m.name)).toEqual(['Pat Mutual', 'Robin Shared']);
+    expect(by['Taylor Fakename']?.mutualCount).toBe(9);
+  });
+
+  it('drops a 2nd-degree card whose mutual line has no links', () => {
+    expect(records.map((r) => r.name)).not.toContain('Drew Linkless');
+  });
+
+  it('drops a 2nd-degree card with no mutual line at all', () => {
+    const doc = new DOMParser().parseFromString(
+      `<div role="listitem"><p><a href="https://www.linkedin.com/in/second-1/">Second One</a><span>\u00b7 2nd</span></p><div><p><span>Engineer</span></p></div></div>`,
+      'text/html',
+    );
+    expect(extractSearchResults(doc)).toEqual([]);
+  });
+
+  it('sends mutuals [] and mutualCount null for 1st and 3rd degree, even when the card has a mutual line', () => {
+    for (const name of ['Jordan Example', 'Riley Placeholder', 'Morgan Testperson', 'Avery Nobody']) {
+      expect(by[name]?.mutuals).toEqual([]);
+      expect(by[name]?.mutualCount).toBeNull();
+    }
+  });
+
+  it('excludes the person\'s own profile link from the mutuals and the count', () => {
+    const doc = new DOMParser().parseFromString(
+      `<div role="listitem">
+         <p><a href="https://www.linkedin.com/in/target-1/">Target One</a><span>\u00b7 2nd</span></p>
+         <div><p><span>Engineer</span></p></div>
+         <p><a href="https://www.linkedin.com/in/target-1/?x=1">Target One</a> <a href="https://www.linkedin.com/in/friend-a/">Friend A</a> is a mutual connection</p>
+       </div>`,
+      'text/html',
+    );
+    const [r] = extractSearchResults(doc);
+    expect(r?.mutuals).toEqual([{ name: 'Friend A', profileUrl: 'https://www.linkedin.com/in/friend-a/' }]);
+    expect(r?.mutualCount).toBe(1);
+  });
+
+  it('drops a 2nd-degree card whose only mutual link is the person themselves', () => {
+    const doc = new DOMParser().parseFromString(
+      `<div role="listitem">
+         <p><a href="https://www.linkedin.com/in/target-1/">Target One</a><span>\u00b7 2nd</span></p>
+         <p><a href="https://www.linkedin.com/in/target-1/">Target One</a> is a mutual connection</p>
+       </div>`,
+      'text/html',
+    );
+    expect(extractSearchResults(doc)).toEqual([]);
+  });
+
+  it('reads only the smallest element with the mutual text, not links elsewhere in the card', () => {
+    const doc = new DOMParser().parseFromString(
+      `<div role="listitem"><div>
+         <p><a href="https://www.linkedin.com/in/target-1/">Target One</a><span>\u00b7 2nd</span></p>
+         <div><p><span>Engineer at Example Corp</span></p></div>
+         <div><p><span>Exampleville</span></p></div>
+         <a href="https://www.linkedin.com/in/decoy-1/">Decoy One</a>
+         <div><p><span><a href="https://www.linkedin.com/in/friend-a/">Friend A</a> &amp; <a href="https://www.linkedin.com/in/friend-b/">Friend B</a> are mutual connections</span></p></div>
+         <a href="https://www.linkedin.com/in/decoy-2/">Decoy Two</a>
+       </div></div>`,
+      'text/html',
+    );
+    const [r] = extractSearchResults(doc);
+    expect(r?.mutuals.map((m) => m.name)).toEqual(['Friend A', 'Friend B']);
+    expect(r?.mutualCount).toBe(2);
+  });
+
+  it('keeps at most 2 mutuals but counts every named one, and skips mutuals without a usable link', () => {
+    const doc = new DOMParser().parseFromString(
+      `<div role="listitem">
+         <p><a href="https://www.linkedin.com/in/target-1/">Target One</a><span>\u00b7 2nd</span></p>
+         <p><a href="/in/friend-a/">Friend A</a>, <span>Friend B</span> &amp; 3 other mutual connections \u00b7 1,204 followers</p>
+       </div>`,
+      'text/html',
+    );
+    const [r] = extractSearchResults(doc);
+    expect(r?.mutuals).toEqual([{ name: 'Friend A', profileUrl: 'https://www.linkedin.com/in/friend-a/' }]);
+    expect(r?.mutualCount).toBe(5); // 2 named (one unlinked) + 3 others
+  });
+
+  it('caps mutuals at 2 in page order', () => {
+    const doc = new DOMParser().parseFromString(
+      `<div role="listitem">
+         <p><a href="https://www.linkedin.com/in/target-1/">Target One</a><span>\u00b7 2nd</span></p>
+         <p><a href="/in/a/">A</a>, <a href="/in/b/">B</a>, <a href="/in/c/">C</a> &amp; 4 other mutual connections</p>
+       </div>`,
+      'text/html',
+    );
+    const [r] = extractSearchResults(doc);
+    expect(r?.mutuals.map((m) => m.name)).toEqual(['A', 'B']);
+    expect(r?.mutualCount).toBe(7);
+  });
+});
+
 describe('extractForPage routing', () => {
   it('extracts only on people-search pages', () => {
-    expect(extractForPage(load('people-search.html'), 'https://www.linkedin.com/search/results/people/?keywords=x')).toHaveLength(6);
+    expect(extractForPage(load('people-search.html'), 'https://www.linkedin.com/search/results/people/?keywords=x')).toHaveLength(7);
     expect(extractForPage(load('people-search.html'), 'https://www.linkedin.com/in/jordan-example-1a2b3c/')).toEqual([]);
     expect(extractForPage(load('people-search.html'), 'https://www.linkedin.com/feed/')).toEqual([]);
   });

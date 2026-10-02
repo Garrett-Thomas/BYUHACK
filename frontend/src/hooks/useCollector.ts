@@ -3,7 +3,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { Branch, Contact, Email, Job, JobData, LogEntry, Profile } from '../types';
 import type { ApiConnection } from '../lib/api';
 import { ApiError, draftEmail, findContact, getConnections } from '../lib/api';
-import { draftNote } from '../lib/drafting';
+import { draftContact } from '../lib/drafting';
 
 type SetData = Dispatch<SetStateAction<Record<string, JobData>>>;
 type State = LogEntry['state'];
@@ -13,23 +13,31 @@ interface Log { add: (text: string, state?: State) => number; set: (n: number, s
 const NO_LOG: Log = { add: () => 0, set: () => {} };
 const errMsg = (e: unknown) => (e instanceof ApiError ? e.message : 'Something went wrong');
 
-const toContact = (c: ApiConnection, job: Job, p: Profile): Contact => ({
-  id: c.id, name: c.name, title: c.headline ?? '', degree: c.degree ?? 'Saved',
-  reason: c.notes ?? c.location ?? '', profileUrl: c.sourceProfileUrl,
-  status: 'Not sent', text: draftNote({ name: c.name, degree: c.degree ?? 'Saved' }, job, p),
-  updatedAt: c.updatedAt,
-});
+const toContact = (c: ApiConnection, job: Job, p: Profile): Contact => {
+  const base = {
+    id: c.id, name: c.name, title: c.headline ?? '', degree: c.degree ?? 'Saved',
+    reason: c.notes ?? c.location ?? '', profileUrl: c.sourceProfileUrl,
+    status: 'Not sent' as const, updatedAt: c.updatedAt,
+    mutuals: c.mutuals ?? [], mutualCount: c.mutualCount ?? null, mutualIndex: 0,
+  };
+  return { ...base, text: draftContact(base, job, p) };
+};
 
-// Merge by id: append new people; existing ones keep their note text and status
-// but take the refreshed name, title, degree and updatedAt. If the degree changed
-// and the note is still the untouched draft, it is redrafted for the new degree.
+// Merge by id: append new people; existing ones keep their text, status and
+// mutualIndex (clamped) but take the refreshed name, title, degree, mutuals,
+// mutualCount and updatedAt. If the text is still the untouched draft, it is
+// redrafted for the refreshed degree/mutuals.
 const mergeContacts = (cur: Contact[], next: Contact[], job: Job, p: Profile): Contact[] => {
   const byId = new Map(next.map((c) => [c.id, c]));
   const have = new Set(cur.map((c) => c.id));
-  const refresh = (c: Contact, n: Contact): Contact => ({
-    ...c, name: n.name, title: n.title, degree: n.degree, updatedAt: n.updatedAt,
-    text: n.degree !== c.degree && c.text === draftNote(c, job, p) ? n.text : c.text,
-  });
+  const refresh = (c: Contact, n: Contact): Contact => {
+    const u: Contact = {
+      ...c, name: n.name, title: n.title, degree: n.degree, updatedAt: n.updatedAt,
+      mutuals: n.mutuals, mutualCount: n.mutualCount,
+      mutualIndex: Math.min(c.mutualIndex, Math.max(0, n.mutuals.length - 1)),
+    };
+    return { ...u, text: c.text === draftContact(c, job, p) ? draftContact(u, job, p) : c.text };
+  };
   return [
     ...cur.map((c) => { const n = byId.get(c.id); return n ? refresh(c, n) : c; }),
     ...next.filter((c) => !have.has(c.id)),

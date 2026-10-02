@@ -1,4 +1,4 @@
-import type { Contact, Job, Profile } from '../types';
+import type { Contact, Job, Mutual, Profile } from '../types';
 
 const MAX = 300;
 
@@ -23,4 +23,36 @@ export function draftNote(contact: Pick<Contact, 'name' | 'degree'>, job: Job, p
   }
   const full = intro + body(hl);
   return full.length <= MAX ? full : intro + body('');
+}
+
+const INTRO_MAX = 600;
+
+// Message to a 1st-degree mutual asking them to introduce you to a 2nd-degree
+// target. A normal message to an existing connection, so no 300-char cap; drops
+// the highlight sentence if it runs past ~600.
+export function draftIntroRequest(
+  mutual: Pick<Mutual, 'name'>, target: Pick<Contact, 'name' | 'title'>, job: Job, p: Profile,
+): string {
+  const m = mutual.name.split(' ')[0];
+  const t = target.name.split(' ')[0];
+  const what = target.title.split(/ [|·] /)[0].trim() || 'at ' + job.company;
+  const doing = job.hasListing
+    ? 'applying for the ' + job.role + ' role at ' + job.company
+    : 'hoping to join ' + job.company + ' as a software engineer';
+  const body = (hl: string) =>
+    'Hi ' + m + ", hope you're doing well! I noticed you're connected with " + t + ", who's " + what + ". I'm " + doing +
+    '. Would you be open to sending ' + t + ' a quick note? Something like: "Hey ' + t + ', my friend ' + p.name +
+    ' (' + p.school.split(',')[0] + ') is ' + doing + '.' + hl + ' Would you be open to a quick chat or a referral?"' +
+    ' Totally fine if not, thanks either way!';
+  const full = body(' They ' + p.highlight + '.');
+  return full.length <= INTRO_MAX ? full : body('');
+}
+
+// The untouched draft for a contact: an intro request to the selected mutual for
+// 2nd-degree people who have one, otherwise the connection note.
+export function draftContact(
+  c: Pick<Contact, 'name' | 'title' | 'degree' | 'mutuals' | 'mutualIndex'>, job: Job, p: Profile,
+): string {
+  const m = c.degree === '2nd' ? c.mutuals[c.mutualIndex] ?? c.mutuals[0] : undefined;
+  return m ? draftIntroRequest(m, c, job, p) : draftNote(c, job, p);
 }

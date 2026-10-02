@@ -1,7 +1,13 @@
-export const EXTRACTOR_VERSION = '1.2.0';
+export const EXTRACTOR_VERSION = '1.3.0';
 
 /** Network distance kept from a search result ("3rd+" is stored as "3rd"). "LinkedIn Member" results are never sent. */
 export type Degree = '1st' | '2nd' | '3rd';
+
+/** A named mutual connection shown on a 2nd-degree search card. */
+export interface Mutual {
+  name: string;
+  profileUrl: string;
+}
 
 /** Body of POST /api/v1/connections (see connections-finder/spec.md). */
 export interface ConnectionInput {
@@ -14,6 +20,10 @@ export interface ConnectionInput {
   location: string | null;
   notes: string | null;
   tags: string[];
+  /** At most 2 named, linked mutual connections (2nd degree only; [] otherwise). */
+  mutuals: Mutual[];
+  /** Named mutuals plus "& N other" from the card's mutual line; null when there is none (always null unless 2nd degree). */
+  mutualCount: number | null;
   capturedAt: string;
   extractorVersion: string;
 }

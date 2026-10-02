@@ -32,9 +32,10 @@ export function localRewrite(text: string, instruction: string): string {
 }
 
 export async function rewriteText(
-  text: string, instruction: string, p: Profile, isEmail: boolean,
+  text: string, instruction: string, p: Profile, cap: number,
 ): Promise<string> {
-  const limit = isEmail ? '' : 'Keep it under 300 characters (LinkedIn note limit). ';
+  // cap: max characters to ask for; 0 for none. Only 300 is LinkedIn's connection-note limit.
+  const limit = cap ? 'Keep it under ' + cap + ' characters' + (cap === 300 ? ' (LinkedIn note limit)' : '') + '. ' : '';
   let out: string | null = null;
   try {
     const sample = await getSample();

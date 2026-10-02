@@ -188,7 +188,7 @@ h2{margin:0;font-size:22px;font-weight:800;letter-spacing:-0.02em}
 
 .sec-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:12px}
 .sec-count{color:var(--ink-4);font-weight:400}
-.ccards{display:flex;flex-direction:column;gap:14px}
+.ccards{display:flex;flex-direction:column;gap:14px;container-type:inline-size}
 .ccard{background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden}
 .ccard-top{display:flex;align-items:center;gap:12px;padding:14px 16px}
 .ccard-id{min-width:0;flex:1}
@@ -203,6 +203,14 @@ h2{margin:0;font-size:22px;font-weight:800;letter-spacing:-0.02em}
 .links{display:flex;gap:14px;font-size:12px;flex-wrap:wrap}
 .btn-text{background:none;border:none;padding:0;color:var(--accent);cursor:pointer;font-size:12px}
 .btn-text:hover{color:var(--accent-link);text-decoration:underline}
+
+.pair{display:grid;grid-template-columns:minmax(0,1fr) 32px minmax(0,1fr);gap:8px;align-items:start}
+.pair-arrow{align-self:center;text-align:center;font-size:22px;color:var(--ink-4)}
+.pair-arrow::before{content:'→'}
+@container (max-width:720px){
+  .pair{grid-template-columns:minmax(0,1fr);gap:4px}
+  .pair-arrow::before{content:'↓'}
+}
 
 .st{border-radius:20px;padding:4px 10px;font-size:12px;cursor:pointer;white-space:nowrap;border:1px solid}
 .st-notsent{background:var(--surface);color:var(--ink-3);border-color:var(--line-chip)}

@@ -69,7 +69,10 @@ Once capture is approved, extraction waits up to 15s for results to render, then
 visit. The extension never clicks, scrolls or paginates.
 
 What is saved per person (structured fields only, never HTML): name, profile URL, headline, location,
-`degree` (`1st`, `2nd` or `3rd`; `3rd+` is stored as `3rd`), `company` and `extractorVersion` `1.2.0`.
+`degree` (`1st`, `2nd` or `3rd`; `3rd+` is stored as `3rd`), `company`, `mutuals` and `mutualCount`, and `extractorVersion` `1.3.0`.
+For 2nd-degree people, `mutuals` is the up to two named, linked mutual connections from the card's mutual line
+(the smallest element whose text matches "mutual connection") and `mutualCount` is the named mutuals plus
+"& N other"; a 2nd-degree person with no linked mutual is not saved. 1st and 3rd degree send `[]` and `null`.
 `company` is the Warmline company from the tab's registration, assigned by the background worker, not
 parsed from the headline. "LinkedIn Member" results are skipped.
 

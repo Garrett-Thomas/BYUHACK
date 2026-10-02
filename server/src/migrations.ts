@@ -59,4 +59,19 @@ export const migrations: Migration[] = [
       );
     `,
   },
+  {
+    version: 4,
+    name: "connection_mutuals",
+    sql: `
+      ALTER TABLE connections ADD COLUMN mutual_count INTEGER;
+
+      CREATE TABLE connection_mutuals (
+        connection_id TEXT NOT NULL REFERENCES connections (id) ON DELETE CASCADE,
+        position INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        profile_url TEXT NOT NULL,
+        PRIMARY KEY (connection_id, position)
+      );
+    `,
+  },
 ];

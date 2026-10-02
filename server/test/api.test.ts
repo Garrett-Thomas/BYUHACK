@@ -137,6 +137,133 @@ describe("POST /api/v1/connections", () => {
   });
 });
 
+describe("mutual connections", () => {
+  const mutual = (slug: string, name = `Mutual ${slug}`) => ({
+    name,
+    profileUrl: `https://www.linkedin.com/in/${slug}/`,
+  });
+
+  it("round-trips mutuals and mutualCount through POST, GET and list, in order", async () => {
+    const a = await post(
+      body({
+        degree: "2nd",
+        mutuals: [
+          { name: "  Zed Mutual ", profileUrl: "https://linkedin.com/in/Zed-Mutual/?trk=x" },
+          mutual("amy-mutual", "Amy Mutual"),
+        ],
+        mutualCount: 9,
+      }),
+    );
+    expect(a.status).toBe(201);
+    const expected = [
+      { name: "Zed Mutual", profileUrl: "https://www.linkedin.com/in/zed-mutual/" },
+      { name: "Amy Mutual", profileUrl: "https://www.linkedin.com/in/amy-mutual/" },
+    ];
+    expect(a.body.connection.mutuals).toEqual(expected);
+    expect(a.body.connection.mutualCount).toBe(9);
+    const got = await request(app).get(`/api/v1/connections/${a.body.id}`);
+    expect(got.body.mutuals).toEqual(expected);
+    expect(got.body.mutualCount).toBe(9);
+    const listed = await request(app).get("/api/v1/connections").query({ company: "Stripe" });
+    expect(listed.body.data[0].mutuals).toEqual(expected);
+    expect(listed.body.data[0].mutualCount).toBe(9);
+  });
+
+  it("defaults to an empty array and null, and accepts null/zero/empty", async () => {
+    const a = await post(body());
+    expect(a.body.connection.mutuals).toEqual([]);
+    expect(a.body.connection.mutualCount).toBeNull();
+    const b = await post(body({ mutuals: null, mutualCount: null }));
+    expect(b.status).toBe(200);
+    expect(b.body.connection.mutuals).toEqual([]);
+    expect(b.body.connection.mutualCount).toBeNull();
+    const c = await post(body({ mutuals: [], mutualCount: 0 }));
+    expect(c.body.connection.mutuals).toEqual([]);
+    expect(c.body.connection.mutualCount).toBe(0);
+  });
+
+  it("replaces mutuals on upsert and clears them when omitted", async () => {
+    const a = await post(body({ mutuals: [mutual("one"), mutual("two")], mutualCount: 2 }));
+    const b = await post(body({ mutuals: [mutual("three")], mutualCount: 5 }));
+    expect(b.body.status).toBe("updated");
+    expect(b.body.connection.mutuals).toEqual([mutual("three")]);
+    expect(b.body.connection.mutualCount).toBe(5);
+    expect(db.prepare("SELECT COUNT(*) AS n FROM connection_mutuals").get()).toEqual({ n: 1 });
+
+    const c = await post(body({ mutuals: [mutual("two"), mutual("one")] }));
+    expect(c.body.connection.mutuals).toEqual([mutual("two"), mutual("one")]);
+    expect(c.body.connection.mutualCount).toBeNull();
+
+    const d = await post(body());
+    expect(d.body.id).toBe(a.body.id);
+    expect(d.body.connection.mutuals).toEqual([]);
+    expect(db.prepare("SELECT COUNT(*) AS n FROM connection_mutuals").get()).toEqual({ n: 0 });
+  });
+
+  it("deletes mutuals with their connection (cascade)", async () => {
+    const a = await post(body({ mutuals: [mutual("one"), mutual("two")], mutualCount: 2 }));
+    await post(body({ sourceProfileUrl: "https://www.linkedin.com/in/keeper/", mutuals: [mutual("three")] }));
+    expect(db.prepare("SELECT COUNT(*) AS n FROM connection_mutuals").get()).toEqual({ n: 3 });
+    expect((await request(app).delete(`/api/v1/connections/${a.body.id}`)).status).toBe(204);
+    expect(db.prepare("SELECT COUNT(*) AS n FROM connection_mutuals").get()).toEqual({ n: 1 });
+  });
+
+  it("422 for a bad mutual URL, name, count, or too many mutuals", async () => {
+    const bad: [Record<string, unknown>, string][] = [
+      [{ mutuals: [{ name: "X", profileUrl: "https://example.com/in/x" }] }, "mutuals.0.profileUrl"],
+      [{ mutuals: [{ name: "X", profileUrl: "https://www.linkedin.com/company/x" }] }, "mutuals.0.profileUrl"],
+      [{ mutuals: [mutual("ok"), { name: "X", profileUrl: "nope" }] }, "mutuals.1.profileUrl"],
+      [{ mutuals: [{ name: "X" }] }, "mutuals.0.profileUrl"],
+      [{ mutuals: [{ name: "", profileUrl: "https://www.linkedin.com/in/x/" }] }, "mutuals.0.name"],
+      [{ mutuals: [{ name: "x".repeat(201), profileUrl: "https://www.linkedin.com/in/x/" }] }, "mutuals.0.name"],
+      [{ mutuals: Array.from({ length: 6 }, (_, i) => mutual(`m${i}`)) }, "mutuals"],
+      [{ mutuals: "nope" }, "mutuals"],
+      [{ mutualCount: -1 }, "mutualCount"],
+      [{ mutualCount: 1.5 }, "mutualCount"],
+      [{ mutualCount: "3" }, "mutualCount"],
+    ];
+    for (const [over, path] of bad) {
+      const r = await post(body(over));
+      expect(r.status, JSON.stringify(over)).toBe(422);
+      expect(r.body.details[0].path, JSON.stringify(over)).toBe(path);
+    }
+    expect(db.prepare("SELECT COUNT(*) AS n FROM connections").get()).toEqual({ n: 0 });
+    // boundaries are accepted
+    const ok = await post(body({ mutuals: Array.from({ length: 5 }, (_, i) => mutual(`m${i}`, "x".repeat(200))) }));
+    expect(ok.status).toBe(201);
+    expect(ok.body.connection.mutuals).toHaveLength(5);
+  });
+
+  it("lists fetch mutuals for the whole page in one query", async () => {
+    for (let i = 0; i < 4; i++) {
+      await post(
+        body({
+          sourceProfileUrl: `https://www.linkedin.com/in/target-${i}/`,
+          name: `Target ${i}`,
+          capturedAt: `2026-10-0${i + 1}T00:00:00.000Z`,
+          mutuals: i === 3 ? [] : [mutual(`a${i}`), mutual(`b${i}`)],
+          mutualCount: i === 3 ? null : 2 + i,
+        }),
+      );
+    }
+    const statements: string[] = [];
+    const prepare = db.prepare.bind(db);
+    db.prepare = ((sql: string) => {
+      statements.push(sql);
+      return prepare(sql);
+    }) as typeof db.prepare;
+
+    const r = await request(app).get("/api/v1/connections").query({ company: "Stripe" });
+    expect(r.status).toBe(200);
+    expect(statements.filter((s) => s.includes("connection_mutuals"))).toHaveLength(1);
+    expect(statements.filter((s) => s.includes("connection_tags"))).toHaveLength(1);
+    expect(r.body.data.map((c: { name: string }) => c.name)).toEqual(["Target 3", "Target 2", "Target 1", "Target 0"]);
+    expect(r.body.data.map((c: { mutuals: unknown[] }) => c.mutuals.length)).toEqual([0, 2, 2, 2]);
+    expect(r.body.data[1].mutuals).toEqual([mutual("a2"), mutual("b2")]);
+    expect(r.body.data.map((c: { mutualCount: number | null }) => c.mutualCount)).toEqual([null, 4, 3, 2]);
+  });
+});
+
 describe("company lookup", () => {
   it("matches case- and suffix-insensitively with pagination totals", async () => {
     for (let i = 0; i < 3; i++) {
@@ -236,7 +363,7 @@ describe("migrations", () => {
       };
       expect(row).toEqual({ name: "Old Timer", degree: null });
       const versions = upgraded.prepare("SELECT version FROM schema_migrations ORDER BY version").all();
-      expect(versions.map((v) => Number(v.version))).toEqual([1, 2, 3]);
+      expect(versions.map((v) => Number(v.version))).toEqual([1, 2, 3, 4]);
       upgraded.close();
 
       const again = openDb(path);
@@ -280,7 +407,7 @@ describe("migration 3", () => {
       expect(upgraded.prepare("SELECT tag FROM connection_tags WHERE connection_id = 'v2-1'").all()).toEqual([{ tag: "eng" }]);
       expect(upgraded.prepare("SELECT COUNT(*) AS n FROM company_scopes").get()).toEqual({ n: 0 });
       expect(upgraded.prepare("SELECT version FROM schema_migrations ORDER BY version").all().map((v) => Number(v.version))).toEqual([
-        1, 2, 3,
+        1, 2, 3, 4,
       ]);
 
       const put = await request(createApp(upgraded))
@@ -291,6 +418,89 @@ describe("migration 3", () => {
 
       const again = openDb(path);
       expect(again.prepare("SELECT COUNT(*) AS n FROM connections").get()).toEqual({ n: 1 });
+      expect(again.prepare("SELECT COUNT(*) AS n FROM company_scopes").get()).toEqual({ n: 1 });
+      again.close();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("migration 4", () => {
+  it("applies to a v3 database with connections, tags and company scopes and keeps them", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "warmline-"));
+    try {
+      const path = join(dir, "v3.db");
+      const old = new DatabaseSync(path);
+      old.exec("CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at TEXT NOT NULL)");
+      for (const m of migrations.filter((m) => m.version <= 3)) {
+        old.exec(m.sql);
+        old
+          .prepare("INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)")
+          .run(m.version, m.name, "2026-10-01T00:00:00.000Z");
+      }
+      const insert = old.prepare(
+        `INSERT INTO connections (id, source, source_profile_url, normalized_profile_url, name, company, normalized_company,
+           degree, captured_at, extractor_version, created_at, updated_at)
+         VALUES (?, 'linkedin', ?, ?, ?, 'Stripe', 'stripe', ?, '2026-10-01T00:00:00.000Z', '1.2.0',
+           '2026-10-01T00:00:00.000Z', '2026-10-01T00:00:00.000Z')`,
+      );
+      insert.run("v3-1", "https://www.linkedin.com/in/v3-one/", "https://www.linkedin.com/in/v3-one/", "V3 One", "2nd");
+      insert.run("v3-2", "https://www.linkedin.com/in/v3-two/", "https://www.linkedin.com/in/v3-two/", "V3 Two", "1st");
+      old.prepare("INSERT INTO connection_tags (connection_id, tag) VALUES ('v3-1', 'eng'), ('v3-1', 'recruiter'), ('v3-2', 'eng')").run();
+      old
+        .prepare(
+          `INSERT INTO company_scopes (normalized_company, company, linkedin_slug, linkedin_name, linkedin_ids, resolved_at)
+           VALUES ('stripe', 'Stripe', 'stripe', 'Stripe', '["2135371"]', '2026-10-01T00:00:00.000Z')`,
+        )
+        .run();
+      old.close();
+
+      const upgraded = openDb(path);
+      expect(upgraded.prepare("SELECT version FROM schema_migrations ORDER BY version").all().map((v) => Number(v.version))).toEqual([
+        1, 2, 3, 4,
+      ]);
+      expect(upgraded.prepare("SELECT id, name, degree, mutual_count FROM connections ORDER BY id").all()).toEqual([
+        { id: "v3-1", name: "V3 One", degree: "2nd", mutual_count: null },
+        { id: "v3-2", name: "V3 Two", degree: "1st", mutual_count: null },
+      ]);
+      expect(upgraded.prepare("SELECT connection_id, tag FROM connection_tags ORDER BY connection_id, tag").all()).toEqual([
+        { connection_id: "v3-1", tag: "eng" },
+        { connection_id: "v3-1", tag: "recruiter" },
+        { connection_id: "v3-2", tag: "eng" },
+      ]);
+      expect(upgraded.prepare("SELECT company, linkedin_ids FROM company_scopes").all()).toEqual([
+        { company: "Stripe", linkedin_ids: '["2135371"]' },
+      ]);
+      expect(upgraded.prepare("SELECT COUNT(*) AS n FROM connection_mutuals").get()).toEqual({ n: 0 });
+
+      // Old rows read back with empty mutuals, and can gain them via upsert.
+      const upgradedApp = createApp(upgraded);
+      const old1 = await request(upgradedApp).get("/api/v1/connections/v3-1");
+      expect(old1.status).toBe(200);
+      expect(old1.body.mutuals).toEqual([]);
+      expect(old1.body.mutualCount).toBeNull();
+      expect(old1.body.tags).toEqual(["eng", "recruiter"]);
+      const up = await request(upgradedApp)
+        .post("/api/v1/connections")
+        .set("Idempotency-Key", "m4")
+        .send(
+          body({
+            sourceProfileUrl: "https://www.linkedin.com/in/v3-one/",
+            degree: "2nd",
+            mutuals: [{ name: "Sam Mutual", profileUrl: "https://www.linkedin.com/in/sam-mutual/" }],
+            mutualCount: 1,
+          }),
+        );
+      expect(up.status).toBe(200);
+      expect(up.body.id).toBe("v3-1");
+      expect(up.body.connection.mutuals).toEqual([{ name: "Sam Mutual", profileUrl: "https://www.linkedin.com/in/sam-mutual/" }]);
+      expect((await request(upgradedApp).get("/api/v1/company-scopes/Stripe")).body.linkedinIds).toEqual(["2135371"]);
+      upgraded.close();
+
+      const again = openDb(path);
+      expect(again.prepare("SELECT COUNT(*) AS n FROM connections").get()).toEqual({ n: 2 });
+      expect(again.prepare("SELECT COUNT(*) AS n FROM connection_mutuals").get()).toEqual({ n: 1 });
       expect(again.prepare("SELECT COUNT(*) AS n FROM company_scopes").get()).toEqual({ n: 1 });
       again.close();
     } finally {

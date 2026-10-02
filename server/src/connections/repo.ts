@@ -3,6 +3,8 @@ import type { DatabaseSync } from "node:sqlite";
 import type { ConnectionInput } from "./schema.js";
 import { normalizeCompany, normalizeProfileUrl } from "./normalize.js";
 
+export type Mutual = { name: string; profileUrl: string };
+
 export type Connection = {
   id: string;
   source: string;
@@ -14,6 +16,8 @@ export type Connection = {
   degree: "1st" | "2nd" | "3rd" | null;
   notes: string | null;
   tags: string[];
+  mutuals: Mutual[];
+  mutualCount: number | null;
   capturedAt: string;
   extractorVersion: string;
   createdAt: string;
@@ -22,11 +26,7 @@ export type Connection = {
 
 type Row = Record<string, unknown>;
 
-function toConnection(db: DatabaseSync, r: Row): Connection {
-  const tags = db
-    .prepare("SELECT tag FROM connection_tags WHERE connection_id = ? ORDER BY tag")
-    .all(r.id as string)
-    .map((t) => t.tag as string);
+function toConnection(r: Row, tags: string[], mutuals: Mutual[]): Connection {
   return {
     id: r.id as string,
     source: r.source as string,
@@ -38,11 +38,39 @@ function toConnection(db: DatabaseSync, r: Row): Connection {
     degree: (r.degree as Connection["degree"]) ?? null,
     notes: (r.notes as string | null) ?? null,
     tags,
+    mutuals,
+    mutualCount: r.mutual_count === null || r.mutual_count === undefined ? null : Number(r.mutual_count),
     capturedAt: r.captured_at as string,
     extractorVersion: r.extractor_version as string,
     createdAt: r.created_at as string,
     updatedAt: r.updated_at as string,
   };
+}
+
+/** Builds connections from rows, fetching tags and mutuals for all rows in one query each (no per-row queries). */
+function toConnections(db: DatabaseSync, rows: Row[]): Connection[] {
+  if (rows.length === 0) return [];
+  const ids = rows.map((r) => r.id as string);
+  const placeholders = ids.map(() => "?").join(", ");
+  const tagsById = new Map<string, string[]>();
+  for (const t of db
+    .prepare(`SELECT connection_id, tag FROM connection_tags WHERE connection_id IN (${placeholders}) ORDER BY tag`)
+    .all(...ids)) {
+    const id = t.connection_id as string;
+    if (!tagsById.has(id)) tagsById.set(id, []);
+    tagsById.get(id)!.push(t.tag as string);
+  }
+  const mutualsById = new Map<string, Mutual[]>();
+  for (const m of db
+    .prepare(
+      `SELECT connection_id, name, profile_url FROM connection_mutuals WHERE connection_id IN (${placeholders}) ORDER BY position`,
+    )
+    .all(...ids)) {
+    const id = m.connection_id as string;
+    if (!mutualsById.has(id)) mutualsById.set(id, []);
+    mutualsById.get(id)!.push({ name: m.name as string, profileUrl: m.profile_url as string });
+  }
+  return rows.map((r) => toConnection(r, tagsById.get(r.id as string) ?? [], mutualsById.get(r.id as string) ?? []));
 }
 
 function inTransaction<T>(db: DatabaseSync, fn: () => T): T {
@@ -62,7 +90,7 @@ function blankToNull(v: string | null | undefined): string | null {
   return t ? t : null;
 }
 
-/** Creates the connection, or overwrites captured fields + tags of the one with the same normalized URL. */
+/** Creates the connection, or overwrites captured fields + tags + mutuals of the one with the same normalized URL. */
 export function upsert(db: DatabaseSync, input: ConnectionInput): { status: "created" | "updated"; connection: Connection } {
   const normalizedUrl = normalizeProfileUrl(input.sourceProfileUrl);
   if (!normalizedUrl) throw new Error("Invalid profile URL");
@@ -70,6 +98,7 @@ export function upsert(db: DatabaseSync, input: ConnectionInput): { status: "cre
   const normalizedCompany = company ? normalizeCompany(company) || null : null;
   const now = new Date().toISOString();
   const tags = [...new Set(input.tags ?? [])];
+  const mutuals = input.mutuals ?? [];
 
   return inTransaction(db, () => {
     const existing = db
@@ -82,7 +111,8 @@ export function upsert(db: DatabaseSync, input: ConnectionInput): { status: "cre
       status = "updated";
       db.prepare(
         `UPDATE connections SET source = ?, source_profile_url = ?, name = ?, headline = ?, company = ?,
-           normalized_company = ?, location = ?, degree = ?, notes = ?, captured_at = ?, extractor_version = ?, updated_at = ?
+           normalized_company = ?, location = ?, degree = ?, notes = ?, mutual_count = ?, captured_at = ?, extractor_version = ?,
+           updated_at = ?
          WHERE id = ?`,
       ).run(
         input.source,
@@ -94,19 +124,21 @@ export function upsert(db: DatabaseSync, input: ConnectionInput): { status: "cre
         input.location ?? null,
         input.degree ?? null,
         input.notes ?? null,
+        input.mutualCount ?? null,
         input.capturedAt,
         input.extractorVersion,
         now,
         id,
       );
       db.prepare("DELETE FROM connection_tags WHERE connection_id = ?").run(id);
+      db.prepare("DELETE FROM connection_mutuals WHERE connection_id = ?").run(id);
     } else {
       id = randomUUID();
       status = "created";
       db.prepare(
         `INSERT INTO connections (id, source, source_profile_url, normalized_profile_url, name, headline, company,
-           normalized_company, location, degree, notes, captured_at, extractor_version, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           normalized_company, location, degree, notes, mutual_count, captured_at, extractor_version, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         id,
         input.source,
@@ -119,6 +151,7 @@ export function upsert(db: DatabaseSync, input: ConnectionInput): { status: "cre
         input.location ?? null,
         input.degree ?? null,
         input.notes ?? null,
+        input.mutualCount ?? null,
         input.capturedAt,
         input.extractorVersion,
         now,
@@ -127,6 +160,10 @@ export function upsert(db: DatabaseSync, input: ConnectionInput): { status: "cre
     }
     const insertTag = db.prepare("INSERT INTO connection_tags (connection_id, tag) VALUES (?, ?)");
     for (const tag of tags) insertTag.run(id, tag);
+    const insertMutual = db.prepare(
+      "INSERT INTO connection_mutuals (connection_id, position, name, profile_url) VALUES (?, ?, ?, ?)",
+    );
+    mutuals.forEach((m, position) => insertMutual.run(id, position, m.name, m.profileUrl));
     return { status, connection: getById(db, id)! };
   });
 }
@@ -146,12 +183,12 @@ export function findByCompany(
       "SELECT * FROM connections WHERE normalized_company = ? ORDER BY captured_at DESC, id LIMIT ? OFFSET ?",
     )
     .all(normalized, limit, offset);
-  return { data: rows.map((r) => toConnection(db, r)), total };
+  return { data: toConnections(db, rows), total };
 }
 
 export function getById(db: DatabaseSync, id: string): Connection | null {
   const row = db.prepare("SELECT * FROM connections WHERE id = ?").get(id);
-  return row ? toConnection(db, row) : null;
+  return row ? toConnections(db, [row])[0] : null;
 }
 
 export function deleteById(db: DatabaseSync, id: string): boolean {
