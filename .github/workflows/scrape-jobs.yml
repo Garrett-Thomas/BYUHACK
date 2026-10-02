@@ -1,0 +1,32 @@
+name: Scrape job boards
+
+on:
+  schedule:
+    # 13:17 UTC daily — off the hour so it doesn't pile up with everyone else's :00 cron jobs.
+    - cron: '17 13 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Scrape listings
+        run: node scrape-jobs.js
+        working-directory: scraper
+
+      - name: Commit updated listings
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/jobs.json
+          git diff --cached --quiet || git commit -m "chore: refresh scraped job listings"
+          git push

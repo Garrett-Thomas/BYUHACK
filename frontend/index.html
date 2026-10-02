@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Warmline Referral Finder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="shell">
+  <header class="hdr">
+    <div class="wrap hdr-in">
+      <div class="mark"><div class="mark-dot"></div><span>Warmline</span></div>
+      <nav class="tabs" id="tabs" aria-label="Sections"></nav>
+      <div class="hdr-right"><div class="dot"></div><span id="hdr-name"></span></div>
+    </div>
+  </header>
+  <main class="wrap" id="view"></main>
+  <footer class="foot">
+    <div class="wrap foot-in">
+      <div class="foot-item"><span class="eyebrow">agent speed</span><span class="seg" id="seg-speed"></span></div>
+      <div class="foot-item"><span class="eyebrow">source column</span><span class="seg" id="seg-repo"></span></div>
+    </div>
+  </footer>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
