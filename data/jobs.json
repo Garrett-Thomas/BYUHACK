@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-02T18:13:18.036Z",
+  "generatedAt": "2026-10-02T18:19:24.737Z",
   "repos": [
     "SimplifyJobs/Summer2027-Internships",
     "SimplifyJobs/New-Grad-Positions",
@@ -363,7 +363,7 @@
       "id": "j32",
       "company": "Pinterest",
       "role": "University Grad Software Engineer 2027 - USA",
-      "location": "Remote (San Francisco, CA)",
+      "location": "Remote",
       "posted": "1d ago",
       "repo": "speedyapply/2027-SWE-College-Jobs",
       "term": "New Grad 2027",
@@ -440,7 +440,7 @@
       "id": "j39",
       "company": "Pinterest",
       "role": "Software Engineer Intern 2027 - USA",
-      "location": "Remote (San Francisco, CA)",
+      "location": "Remote",
       "posted": "1d ago",
       "repo": "speedyapply/2027-SWE-College-Jobs",
       "term": "Summer 2027",

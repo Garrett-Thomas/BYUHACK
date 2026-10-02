@@ -52,14 +52,10 @@ function normalizeLocation(raw) {
   if (!loc) return 'Remote';
   loc = loc.replace(/\s*\+\d+$/, '').trim(); // "Austin, TX +1" -> "Austin, TX"
 
-  if (/^Remote \(.+\)$/i.test(loc)) return loc;
-  // Covers both feed styles: "Remote in USA" (SimplifyJobs) and "Remote - San Francisco, CA" (speedyapply).
-  const remoteMatch = /^Remote\s*(?:-|–|in)\s*(.+)$/i.exec(loc);
-  if (remoteMatch) {
-    let region = remoteMatch[1].trim();
-    region = /^usa?$/i.test(region) ? 'US' : (LOCATION_ALIASES.get(region.toLowerCase()) || region);
-    return 'Remote (' + region + ')';
-  }
+  // Covers every variant seen across the feeds — "Remote in USA" (SimplifyJobs),
+  // "Remote - San Francisco, CA" (speedyapply), bare "Remote" — as just "Remote",
+  // dropping the region instead of carrying it through.
+  if (/^Remote\b/i.test(loc)) return 'Remote';
 
   return LOCATION_ALIASES.get(loc.toLowerCase()) || loc;
 }
