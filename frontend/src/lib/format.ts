@@ -30,6 +30,9 @@ export function jobMeta(job: Job): string {
     : 'No listing — general referral outreach';
 }
 
+export const linkedInPeopleUrl = (company: string) =>
+  'https://www.linkedin.com/search/results/people/?keywords=' + encodeURIComponent(company);
+
 export const gridCols = (showRepo: boolean) => showRepo
   ? 'minmax(0,1fr) minmax(0,1.8fr) minmax(0,1.1fr) 64px minmax(0,1.4fr) 140px'
   : 'minmax(0,1fr) minmax(0,2fr) minmax(0,1.2fr) 64px 140px';

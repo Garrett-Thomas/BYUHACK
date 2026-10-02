@@ -1,4 +1,5 @@
 import type { Branch, Contact, Email, Job, JobData, Profile } from '../types';
+import { linkedInPeopleUrl } from '../lib/format';
 import ContactCard from './ContactCard';
 import EmailComposer from './EmailComposer';
 
@@ -33,7 +34,10 @@ export default function DonePanel({ job, d, profile, onRetry, onContact, onEmail
           </div>
         ) : contacts.length === 0 ? (
           <div className="empty-rows">
-            {'No saved connections at ' + job.company + ' yet. Browse their LinkedIn people page with the Warmline extension on, then re-run.'}
+            <div>{'No saved connections at ' + job.company + ' yet. Browse their LinkedIn people page with the Warmline extension on, then re-run.'}</div>
+            <a className="btn btn-solid" href={linkedInPeopleUrl(job.company)} target="_blank" rel="noopener">
+              Find people on LinkedIn ↗
+            </a>
           </div>
         ) : (
           <div className="ccards">

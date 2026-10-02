@@ -1,5 +1,5 @@
 import type { Branch, Contact, Email, Job, JobData, Profile, Screen } from '../types';
-import { jobMeta } from '../lib/format';
+import { jobMeta, linkedInPeopleUrl } from '../lib/format';
 import NonePanel from './NonePanel';
 import CollectingPanel from './CollectingPanel';
 import DonePanel from './DonePanel';
@@ -35,6 +35,9 @@ export default function JobDetailScreen({ job, d, prevScreen, profile, go, onCol
           {d?.status === 'done' && (
             <button className="btn btn-ghost" type="button" onClick={onCollect}>Re-run search</button>
           )}
+          <a className="btn btn-ghost" href={linkedInPeopleUrl(job.company)} target="_blank" rel="noopener">
+            Find people on LinkedIn ↗
+          </a>
           {job.hasListing && job.url && (
             <a className="btn btn-solid" href={job.url} target="_blank" rel="noopener">Open application ↗</a>
           )}
