@@ -91,11 +91,11 @@ export function showSaveButton(registration: Registration | null | undefined, ur
   return !!u && companySlugFromPath(u.pathname) !== null;
 }
 
-/** The 1st-degree, company-scoped people search that follows a successful Save. Every param is encoded. */
-export function firstDegreePeopleUrl(company: string, ids: readonly string[]): string {
+/** The 1st + 2nd degree, company-scoped people search that follows a successful Save. Every param is encoded. */
+export function connectionsPeopleUrl(company: string, ids: readonly string[]): string {
   const params: Array<[string, string]> = [
     ['currentCompany', JSON.stringify(ids)],
-    ['network', JSON.stringify(['F'])],
+    ['network', JSON.stringify(['F', 'S'])],
     ['origin', 'COMPANY_PAGE_CANNED_SEARCH'],
     ['warmline', company],
   ];

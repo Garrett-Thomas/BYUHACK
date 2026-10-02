@@ -37,7 +37,7 @@ afterEach(() => {
 });
 
 describe('save button', () => {
-  it('appears with both names once the employees link exists, bottom-right with inline styles', () => {
+  it('appears with both names once the employees link exists, top-right with inline styles', () => {
     document.body.innerHTML = `<main><h1>Example Corp</h1>${EMPLOYEES([a, b])}</main>`;
     mount('example-corp', 'Acme', async () => ({ ok: true }));
     expect(saveBtn().textContent).toBe('Save "Example Corp" as "Acme"');
@@ -45,7 +45,7 @@ describe('save button', () => {
     const style = host()!.style;
     expect(style.position).toBe('fixed');
     expect(style.right).toBe('16px');
-    expect(style.bottom).toBe('16px');
+    expect(style.top).toBe('72px');
     expect(Number(style.zIndex)).toBeGreaterThan(1_000_000);
   });
 
@@ -87,7 +87,7 @@ describe('save button', () => {
     expect(host()).toBeNull();
   });
 
-  it('on click sends the slug, name and ids, then replaces the location with the 1st-degree search', async () => {
+  it('on click sends the slug, name and ids, then replaces the location with the 1st + 2nd degree search', async () => {
     document.body.innerHTML = `<main><h1>Example Corp</h1>${EMPLOYEES([a, b])}</main>`;
     const send = vi.fn(async (): Promise<SaveCompanyResponse> => ({ ok: true, company: 'Acme', ids: [a, b] }));
     const navigate = mount('example-corp', 'Acme', send);
@@ -96,7 +96,7 @@ describe('save button', () => {
     expect(send).toHaveBeenCalledWith({ type: 'saveCompany', slug: 'example-corp', linkedinName: 'Example Corp', ids: [a, b] });
     expect(navigate).toHaveBeenCalledTimes(1);
     expect(navigate).toHaveBeenCalledWith(
-      `https://www.linkedin.com/search/results/people/?currentCompany=%5B%22${a}%22%2C%22${b}%22%5D&network=%5B%22F%22%5D&origin=COMPANY_PAGE_CANNED_SEARCH&warmline=Acme`,
+      `https://www.linkedin.com/search/results/people/?currentCompany=%5B%22${a}%22%2C%22${b}%22%5D&network=%5B%22F%22%2C%22S%22%5D&origin=COMPANY_PAGE_CANNED_SEARCH&warmline=Acme`,
     );
   });
 

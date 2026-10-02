@@ -59,7 +59,7 @@ export default function DonePanel({ job, d, profile, scope, polling, onFind, onR
               <div key={s.net} style={{ marginBottom: 28 }}>
                 <div className="sec-head" style={{ marginBottom: 4 }}>
                   <h2 style={{ fontSize: 18 }}>{s.title} <span className="sec-count">{'· ' + s.list.length}</span></h2>
-                  <a style={{ fontSize: 12, whiteSpace: 'nowrap' }} href={linkedInPeopleUrl(job.company, s.net, scope.linkedinIds)}
+                  <a style={{ fontSize: 12, whiteSpace: 'nowrap' }} href={linkedInPeopleUrl(job.company, [s.net], scope.linkedinIds)}
                     target="_blank" rel="noopener" onClick={onFind}>
                     Find on LinkedIn ↗
                   </a>

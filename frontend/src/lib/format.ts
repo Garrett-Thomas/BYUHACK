@@ -37,9 +37,9 @@ export const linkedInCompanySearchUrl = (company: string) => {
 };
 
 // F/S/O people at the saved LinkedIn company `ids`; `warmline` tells the extension to capture this tab.
-export const linkedInPeopleUrl = (company: string, network: 'F' | 'S' | 'O', ids: string[]) =>
+export const linkedInPeopleUrl = (company: string, network: Array<'F' | 'S' | 'O'>, ids: string[]) =>
   'https://www.linkedin.com/search/results/people/?currentCompany=' + encodeURIComponent(JSON.stringify(ids)) +
-  '&network=' + encodeURIComponent(JSON.stringify([network])) +
+  '&network=' + encodeURIComponent(JSON.stringify(network)) +
   '&origin=' + encodeURIComponent('COMPANY_PAGE_CANNED_SEARCH') +
   '&warmline=' + encodeURIComponent(company);
 

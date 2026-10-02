@@ -1,5 +1,5 @@
 import { companyNameFrom, parseEmployeesLinkIds } from './extractors';
-import { firstDegreePeopleUrl } from './registration';
+import { connectionsPeopleUrl } from './registration';
 import type { Message, SaveCompanyResponse } from './types';
 
 /** How long to wait for the "N employees" link before showing the disabled state. */
@@ -35,7 +35,7 @@ const HOST_CSS = [
   'all:initial',
   'position:fixed',
   'right:16px',
-  'bottom:16px',
+  'top:72px', // below LinkedIn's fixed nav bar
   'z-index:2147483647',
   'box-sizing:border-box',
   'max-width:min(360px,calc(100vw - 32px))',
@@ -175,7 +175,7 @@ export function mountSaveButton(opts: SaveButtonOptions): SaveButtonHandle {
       }
       if (destroyed) return;
       if (res?.ok && typeof res.company === 'string' && Array.isArray(res.ids) && res.ids.length > 0) {
-        navigate(firstDegreePeopleUrl(res.company, res.ids));
+        navigate(connectionsPeopleUrl(res.company, res.ids));
         return;
       }
       busy = false;

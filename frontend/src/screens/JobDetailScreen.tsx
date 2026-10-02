@@ -58,7 +58,7 @@ export default function JobDetailScreen({ job, d, prevScreen, profile, go, onRet
             </a>
           )}
           {scope && (
-            <a className="btn btn-ghost" href={linkedInPeopleUrl(job.company, 'F', scope.linkedinIds)} target="_blank"
+            <a className="btn btn-ghost" href={linkedInPeopleUrl(job.company, ['F', 'S'], scope.linkedinIds)} target="_blank"
               rel="noopener" onClick={find}>
               Find people on LinkedIn ↗
             </a>

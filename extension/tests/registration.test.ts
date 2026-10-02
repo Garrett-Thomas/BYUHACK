@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   REGISTRATION_TTL_MS,
   companySlugFromPath,
-  firstDegreePeopleUrl,
+  connectionsPeopleUrl,
   registrationFromUrl,
   shouldCapture,
   showSaveButton,
@@ -176,20 +176,20 @@ describe('companySlugFromPath', () => {
   });
 });
 
-describe('firstDegreePeopleUrl', () => {
-  it('builds the 1st-degree scoped search with every param encoded and the warmline marker', () => {
-    const url = firstDegreePeopleUrl('Acme & Sons, Inc.', ['101', '202']);
+describe('connectionsPeopleUrl', () => {
+  it('builds the 1st + 2nd degree scoped search with every param encoded and the warmline marker', () => {
+    const url = connectionsPeopleUrl('Acme & Sons, Inc.', ['101', '202']);
     expect(url).toBe(
-      'https://www.linkedin.com/search/results/people/?currentCompany=%5B%22101%22%2C%22202%22%5D&network=%5B%22F%22%5D&origin=COMPANY_PAGE_CANNED_SEARCH&warmline=Acme%20%26%20Sons%2C%20Inc.',
+      'https://www.linkedin.com/search/results/people/?currentCompany=%5B%22101%22%2C%22202%22%5D&network=%5B%22F%22%2C%22S%22%5D&origin=COMPANY_PAGE_CANNED_SEARCH&warmline=Acme%20%26%20Sons%2C%20Inc.',
     );
     const u = new URL(url);
     expect(u.searchParams.get('currentCompany')).toBe('["101","202"]');
-    expect(u.searchParams.get('network')).toBe('["F"]');
+    expect(u.searchParams.get('network')).toBe('["F","S"]');
     expect(u.searchParams.get('warmline')).toBe('Acme & Sons, Inc.');
   });
 
   it('round-trips into a people-mode registration that shouldCapture accepts', () => {
-    const url = firstDegreePeopleUrl('Acme Corp', ['101', '202', '303']);
+    const url = connectionsPeopleUrl('Acme Corp', ['101', '202', '303']);
     const reg = registrationFromUrl(url, T0);
     expect(reg).toEqual({ mode: 'people', company: 'Acme Corp', ids: ['101', '202', '303'], registeredAt: T0 });
     expect(shouldCapture(reg, url, T0)).toBe('Acme Corp');
