@@ -30,7 +30,6 @@ const SPEEDS = { Fast: 350, Normal: 700, Slow: 1200 };
 
 const slug = (co) => co.toLowerCase().replace(/[^a-z0-9]/g, '') + '.com';
 const initials = (n) => n.split(' ').map((s) => s[0]).join('').slice(0, 2);
-const repoName = (repo) => (repo || '').split('/').pop();
 const logLines = (co) => [
   'Launching browser session',
   'Signed in to LinkedIn',
@@ -476,8 +475,8 @@ function renderTable() {
       h('div', { class: 'c-loc', text: j.location }),
       h('div', { class: 'c-posted num', text: j.posted }),
       state.showRepo ? h('div', { class: 'c-repo' }, h('a', {
-        href: 'https://github.com/' + j.repo, target: '_blank', rel: 'noopener', title: j.repo,
-        text: repoName(j.repo), onclick: (e) => e.stopPropagation(),
+        href: 'https://github.com/' + j.repo, target: '_blank', rel: 'noopener',
+        text: j.repo, onclick: (e) => e.stopPropagation(),
       })) : null,
       h('div', { class: 'c-status' }, h('span', { class: st.cls, text: st.text })),
     ]);
