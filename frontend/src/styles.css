@@ -227,10 +227,11 @@ h2{margin:0;font-size:22px;font-weight:800;letter-spacing:-0.02em}
 .btn-text:hover{color:var(--accent-link);text-decoration:underline}
 
 .pair{display:grid;grid-template-columns:minmax(0,1fr) 32px minmax(0,1fr);gap:8px;align-items:start}
-.pair-arrow{align-self:center;text-align:center;font-size:22px;color:var(--ink-4)}
+.pair-arrow{align-self:start;margin-top:15px;height:40px;line-height:40px;text-align:center;font-size:22px;color:var(--ink-4)}
 .pair-arrow::before{content:'→'}
 @container (max-width:720px){
   .pair{grid-template-columns:minmax(0,1fr);gap:4px}
+  .pair-arrow{margin-top:0}
   .pair-arrow::before{content:'↓'}
 }
 
