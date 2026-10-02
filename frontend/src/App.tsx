@@ -115,7 +115,7 @@ export default function App() {
           <ProfileScreen profile={profile} onChange={(patch) => setProfile((p) => ({ ...p, ...patch }))} />
         )}
       </main>
-      <Footer showRepo={showRepo} onShowRepo={setShowRepo} />
+      {current === 'jobs' && <Footer showRepo={showRepo} onShowRepo={setShowRepo} />}
     </div>
   );
 }

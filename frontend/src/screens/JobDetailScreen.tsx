@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Branch, Contact, Email, Job, JobData, Profile, Screen } from '../types';
-import { jobMeta, linkedInCompanySearchUrl, linkedInPeopleUrl } from '../lib/format';
+import { jobMeta, linkedInPeopleUrl } from '../lib/format';
 import { useConnectionPoll } from '../hooks/useConnectionPoll';
 import { useCompanyScope } from '../hooks/useCompanyScope';
 import DonePanel from './DonePanel';
@@ -46,17 +46,11 @@ export default function JobDetailScreen({ job, d, prevScreen, profile, go, onRet
             <div style={{ marginTop: 8, fontSize: 12, color: 'var(--ink-3)' }}>
               {'LinkedIn company: ' + (scope.linkedinName ?? scope.linkedinSlug ?? job.company) + ' · '}
               <button className="btn-text" type="button" onClick={change}>change</button>
-              {changeFailed && ' (couldn\'t reach the Warmline server)'}
+              {changeFailed && ' (couldn\'t reach the Top of the Stack server)'}
             </div>
           )}
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {scope === null && (
-            <a className="btn btn-ghost" href={linkedInCompanySearchUrl(job.company)} target="_blank" rel="noopener"
-              onClick={find}>
-              {'Find ' + job.company + ' on LinkedIn ↗'}
-            </a>
-          )}
           {scope && (
             <a className="btn btn-ghost" href={linkedInPeopleUrl(job.company, ['F', 'S'], scope.linkedinIds)} target="_blank"
               rel="noopener" onClick={find}>

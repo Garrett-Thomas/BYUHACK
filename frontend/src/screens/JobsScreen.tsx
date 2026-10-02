@@ -47,7 +47,7 @@ export default function JobsScreen(p: Props) {
           <p className="sub">{jobs.length + ' listings pulled from ' + p.repoCount +
             ' GitHub repos · ' + syncedLabel(p.generatedAt)}</p>
         </div>
-        <button className="btn btn-ghost" type="button" onClick={() => p.go('company')}>
+        <button className="btn btn-accent-sm" type="button" onClick={() => p.go('company')}>
           No listing? Search a company →
         </button>
       </div>

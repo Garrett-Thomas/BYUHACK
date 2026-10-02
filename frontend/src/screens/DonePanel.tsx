@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import type { Branch, Contact, Email, Job, JobData, Profile } from '../types';
 import type { CompanyScope } from '../lib/api';
 import { linkedInPeopleUrl } from '../lib/format';
+import Tabs from '../components/Tabs';
 import ContactCard from './ContactCard';
 import PairRow from './PairRow';
 import FindCompany from './FindCompany';
@@ -18,10 +20,13 @@ interface Props {
   onEmail: (patch: Partial<Email>) => void;
 }
 
+type Tab = 'people' | 'email';
+
 const newestFirst = (a: Contact, b: Contact) => b.updatedAt.localeCompare(a.updatedAt);
 
 export default function DonePanel({ job, d, profile, scope, polling, onFind, onRetry, onContact, onEmail }: Props) {
   const { contacts, email, err, busy } = d;
+  const [tab, setTab] = useState<Tab>('people');
   const sent = contacts.filter((c) => c.status !== 'Not sent').length;
   const retryBtn = (b: Branch) => (
     <button className="btn btn-ghost" type="button" disabled={busy[b]} onClick={() => onRetry(b)}>
@@ -36,78 +41,86 @@ export default function DonePanel({ job, d, profile, scope, polling, onFind, onR
     { net: 'O' as const, title: 'Other people at ' + job.company, sub: '3rd-degree, and saved profiles with no degree.', none: 'No other people saved yet.',
       list: contacts.filter((c) => c.degree !== '1st' && c.degree !== '2nd') },
   ];
+  const panel = (t: Tab) => ({
+    role: 'tabpanel' as const, id: 'job-tabs-' + t, 'aria-labelledby': 'job-tabs-' + t + '-tab',
+  });
   return (
-    <div className="two-col">
-      <section>
-        {polling && (
-          <div className="eyebrow" style={{ textTransform: 'none', letterSpacing: 0, marginBottom: 10 }}>
-            checking LinkedIn for new people…
-          </div>
-        )}
-        {scope === undefined ? null : err.contacts || busy.contacts ? (
-          <div className="empty-rows">
-            <div>{busy.contacts ? 'Looking up saved connections…' : "Couldn't load saved connections: " + err.contacts}</div>
-            {retryBtn('contacts')}
-          </div>
-        ) : scope === null ? (
-          <div className="empty-rows">
-            <FindCompany job={job} onFind={onFind} />
-          </div>
-        ) : (
-          <>
-            <div style={{ fontSize: 12, color: 'var(--ink-3)', marginBottom: 14 }}>{sent + ' sent'}</div>
-            {sections.map((s) => (
-              <div key={s.net} style={{ marginBottom: 28 }}>
-                <div className="sec-head" style={{ marginBottom: 4 }}>
-                  <h2 style={{ fontSize: 18 }}>{s.title} <span className="sec-count">{'· ' + s.list.length}</span></h2>
-                  <a style={{ fontSize: 12, whiteSpace: 'nowrap' }} href={linkedInPeopleUrl(job.company, [s.net], scope.linkedinIds)}
-                    target="_blank" rel="noopener" onClick={onFind}>
-                    Find on LinkedIn ↗
-                  </a>
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--ink-3)', marginBottom: 12 }}>{s.sub}</div>
-                {s.list.length === 0 ? (
-                  <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>{s.none}</div>
-                ) : (
-                  <div className="ccards">
-                    {[...s.list].sort(newestFirst).map((c) => c.degree === '2nd' && c.mutuals.length > 0 ? (
-                      <PairRow key={c.id} job={job} contact={c} profile={profile}
-                        onChange={(patch) => onContact(c.id, patch)} />
-                    ) : (
-                      <ContactCard key={c.id} jobId={job.id} contact={c} profile={profile}
-                        onChange={(patch) => onContact(c.id, patch)} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </>
-        )}
-      </section>
-      {email && email !== 'idle' && !err.email && !busy.email
-        ? <EmailComposer jobId={job.id} email={email} profile={profile} onChange={onEmail} />
-        : (
-          <section className="sticky-col">
-            <h2 style={{ marginBottom: 12 }}>Email to hiring team</h2>
-            <div className="empty-rows">
-              {email === 'idle' && !err.email && !busy.email ? (
-                <>
-                  <div>{'Search the web for a recruiting email at ' + job.company + ' and draft a note to them.'}</div>
-                  <button className="btn btn-solid" type="button" onClick={() => onRetry('email')}>
-                    Find HR email
-                  </button>
-                </>
-              ) : (
-                <>
-                  <div>{busy.email ? 'Searching for a recruiting email…'
-                    : err.email ? "Couldn't find or draft an email: " + err.email
-                    : 'No public recruiting email found for ' + job.company}</div>
-                  {retryBtn('email')}
-                </>
-              )}
+    <>
+      <Tabs id="job-tabs" value={tab} onChange={setTab} tabs={[
+        { value: 'people', label: 'Find connections', count: contacts.length },
+        { value: 'email', label: 'Email hiring team' },
+      ]} />
+      {tab === 'people' ? (
+        <section {...panel('people')}>
+          {polling && (
+            <div className="eyebrow" style={{ textTransform: 'none', letterSpacing: 0, marginBottom: 10 }}>
+              checking LinkedIn for new people…
             </div>
-          </section>
-        )}
-    </div>
+          )}
+          {scope === undefined ? null : err.contacts || busy.contacts ? (
+            <div className="empty-rows">
+              <div>{busy.contacts ? 'Looking up saved connections…' : "Couldn't load saved connections: " + err.contacts}</div>
+              {retryBtn('contacts')}
+            </div>
+          ) : scope === null ? (
+            <div className="empty-rows">
+              <FindCompany job={job} onFind={onFind} />
+            </div>
+          ) : (
+            <>
+              <div style={{ fontSize: 12, color: 'var(--ink-3)', marginBottom: 14 }}>{sent + ' sent'}</div>
+              {sections.map((s) => (
+                <div key={s.net} style={{ marginBottom: 28 }}>
+                  <div className="sec-head" style={{ marginBottom: 4 }}>
+                    <h2 style={{ fontSize: 18 }}>{s.title} <span className="sec-count">{'· ' + s.list.length}</span></h2>
+                    <a style={{ fontSize: 12, whiteSpace: 'nowrap' }} href={linkedInPeopleUrl(job.company, [s.net], scope.linkedinIds)}
+                      target="_blank" rel="noopener" onClick={onFind}>
+                      Find on LinkedIn ↗
+                    </a>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--ink-3)', marginBottom: 12 }}>{s.sub}</div>
+                  {s.list.length === 0 ? (
+                    <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>{s.none}</div>
+                  ) : (
+                    <div className="ccards">
+                      {[...s.list].sort(newestFirst).map((c) => c.degree === '2nd' && c.mutuals.length > 0 ? (
+                        <PairRow key={c.id} job={job} contact={c} profile={profile}
+                          onChange={(patch) => onContact(c.id, patch)} />
+                      ) : (
+                        <ContactCard key={c.id} jobId={job.id} contact={c} profile={profile}
+                          onChange={(patch) => onContact(c.id, patch)} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </>
+          )}
+        </section>
+      ) : email && email !== 'idle' && !err.email && !busy.email ? (
+        <EmailComposer jobId={job.id} email={email} profile={profile} onChange={onEmail} panel={panel('email')} />
+      ) : (
+        <section {...panel('email')}>
+          <h2 style={{ marginBottom: 12 }}>Email to hiring team</h2>
+          <div className="empty-rows">
+            {email === 'idle' && !err.email && !busy.email ? (
+              <>
+                <div>{'Search the web for a recruiting email at ' + job.company + ' and draft a note to them.'}</div>
+                <button className="btn btn-solid" type="button" onClick={() => onRetry('email')}>
+                  Find HR email
+                </button>
+              </>
+            ) : (
+              <>
+                <div>{busy.email ? 'Searching for a recruiting email…'
+                  : err.email ? "Couldn't find or draft an email: " + err.email
+                  : 'No public recruiting email found for ' + job.company}</div>
+                {retryBtn('email')}
+              </>
+            )}
+          </div>
+        </section>
+      )}
+    </>
   );
 }

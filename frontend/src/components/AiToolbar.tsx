@@ -5,7 +5,7 @@ import { rewriteText } from '../lib/rewrite';
 
 interface Props {
   aiKey: string;
-  presets: string[];
+  presets?: string[]; // omit for no preset chips, as the email does
   text: string;
   profile: Profile;
   onApply: (text: string) => void;
@@ -13,8 +13,8 @@ interface Props {
   maxChars?: number; // default: none for the email, 300 (LinkedIn note) otherwise
 }
 
-/** Preset chips + prompt row + Rewrite button, shared by notes and the email. */
-export default function AiToolbar({ aiKey, presets, text, profile, onApply, extra, maxChars }: Props) {
+/** Optional preset chips + prompt row + Rewrite button, shared by notes and the email. */
+export default function AiToolbar({ aiKey, presets = [], text, profile, onApply, extra, maxChars }: Props) {
   const [value, setValue] = useState('');
   const [busy, setBusy] = useState(false);
   const isEmail = aiKey.endsWith(':email');
@@ -31,11 +31,13 @@ export default function AiToolbar({ aiKey, presets, text, profile, onApply, extr
 
   return (
     <div className="toolbar">
-      <div className="presets">
-        {presets.map((label) => (
-          <button key={label} className="chip-preset" type="button" onClick={() => rewrite(label)}>{label}</button>
-        ))}
-      </div>
+      {presets.length > 0 && (
+        <div className="presets">
+          {presets.map((label) => (
+            <button key={label} className="chip-preset" type="button" onClick={() => rewrite(label)}>{label}</button>
+          ))}
+        </div>
+      )}
       <div className="askrow">
         <input className="inp-sm" id={'ai-' + aiKey} type="text" value={value}
           placeholder={isEmail ? 'Ask AI to change this email…' : 'Ask AI to change this message…'}
