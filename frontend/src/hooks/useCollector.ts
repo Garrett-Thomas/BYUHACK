@@ -37,7 +37,7 @@ const mergeContacts = (cur: Contact[], next: Contact[], job: Job, p: Profile): C
 };
 
 export function useCollector(setData: SetData) {
-  // Per-job run id: bumped on every collect(). Async results carry the id they
+  // Per-job run id. Async results carry the id they
   // started with and are dropped if the job has since been re-run.
   const runs = useRef<Record<string, number>>({});
   const seq = useRef(0);
@@ -105,20 +105,6 @@ export function useCollector(setData: SetData) {
     return { patch, mkLog, loadContacts, loadEmail };
   }, [setData]);
 
-  const collect = useCallback((job: Job, profile: Profile) => {
-    const r = (runs.current[job.id] ?? 0) + 1;
-    runs.current[job.id] = r;
-    const { patch, mkLog, loadContacts, loadEmail } = run(job, profile);
-    setData((prev) => ({ ...prev, [job.id]: { status: 'collecting', log: [], contacts: [] } }));
-    const log = mkLog(r);
-    // Both branches run in parallel; each handles its own failure.
-    Promise.all([loadContacts(r, log), loadEmail(log)]).then(([cErr, e]) =>
-      patch(r, (d) => (d.status === 'collecting' ? {
-        status: 'done', contacts: d.contacts, email: e.email,
-        err: { contacts: cErr, email: e.error }, busy: { contacts: false, email: false },
-      } : d)));
-  }, [run, setData]);
-
   // Reruns a single branch of a finished job.
   const retry = useCallback((job: Job, profile: Profile, branch: Branch) => {
     const r = runs.current[job.id] ?? 0;
@@ -155,5 +141,5 @@ export function useCollector(setData: SetData) {
     }, () => {});
   }, [run]);
 
-  return { collect, retry, ensureIdle, sync };
+  return { retry, ensureIdle, sync };
 }

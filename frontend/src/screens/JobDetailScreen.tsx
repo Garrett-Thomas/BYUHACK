@@ -1,11 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Branch, Contact, Email, Job, JobData, Profile, Screen } from '../types';
 import { jobMeta, linkedInCompanySearchUrl, linkedInPeopleUrl } from '../lib/format';
 import { useConnectionPoll } from '../hooks/useConnectionPoll';
 import { useCompanyScope } from '../hooks/useCompanyScope';
-import NonePanel from './NonePanel';
-import FindCompany from './FindCompany';
-import CollectingPanel from './CollectingPanel';
 import DonePanel from './DonePanel';
 
 interface Props {
@@ -14,7 +11,6 @@ interface Props {
   prevScreen: Screen;
   profile: Profile;
   go: (s: Screen) => void;
-  onCollect: () => void;
   onRetry: (b: Branch) => void;
   onFind: () => void;
   onSync: () => void;
@@ -22,13 +18,16 @@ interface Props {
   onEmail: (patch: Partial<Email>) => void;
 }
 
-export default function JobDetailScreen({ job, d, prevScreen, profile, go, onCollect, onRetry, onFind, onSync, onContact, onEmail }: Props) {
+export default function JobDetailScreen({ job, d, prevScreen, profile, go, onRetry, onFind, onSync, onContact, onEmail }: Props) {
   const { scope, refresh, clear } = useCompanyScope(job.company);
   // Each tick also re-fetches the scope, so it shows up once the user saves it in LinkedIn.
   const { polling, start } = useConnectionPoll(job.id, () => { onSync(); refresh(); });
   const [changeFailed, setChangeFailed] = useState(false);
   // The link itself still opens in a new tab; this just starts watching for new people.
   const find = () => { onFind(); start(); };
+  // Opening a job shows the connections and email columns right away and loads saved
+  // connections (free). The paid email search only runs from its own button.
+  useEffect(() => { onFind(); onSync(); }, [job.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const change = () => { setChangeFailed(false); clear().then((ok) => setChangeFailed(!ok)); };
   return (
     <>
@@ -52,9 +51,6 @@ export default function JobDetailScreen({ job, d, prevScreen, profile, go, onCol
           )}
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {d?.status === 'done' && (
-            <button className="btn btn-ghost" type="button" onClick={onCollect}>Re-run search</button>
-          )}
           {scope === null && (
             <a className="btn btn-ghost" href={linkedInCompanySearchUrl(job.company)} target="_blank" rel="noopener"
               onClick={find}>
@@ -72,9 +68,7 @@ export default function JobDetailScreen({ job, d, prevScreen, profile, go, onCol
           )}
         </div>
       </div>
-      {!d ? <NonePanel job={job} onCollect={onCollect}>{scope === null && <FindCompany job={job} onFind={find} />}</NonePanel>
-        : d.status === 'collecting' ? <CollectingPanel log={d.log} contacts={d.contacts} />
-        : <DonePanel job={job} d={d} profile={profile} scope={scope} polling={polling} onFind={find}
+      {d?.status === 'done' && <DonePanel job={job} d={d} profile={profile} scope={scope} polling={polling} onFind={find}
             onRetry={onRetry} onContact={onContact} onEmail={onEmail} />}
     </>
   );

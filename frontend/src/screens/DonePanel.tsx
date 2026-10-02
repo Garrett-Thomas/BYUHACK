@@ -90,7 +90,7 @@ export default function DonePanel({ job, d, profile, scope, polling, onFind, onR
                 <>
                   <div>{'Search the web for a recruiting email at ' + job.company + ' and draft a note to them.'}</div>
                   <button className="btn btn-solid" type="button" onClick={() => onRetry('email')}>
-                    Find recruiting email
+                    Find HR email
                   </button>
                 </>
               ) : (

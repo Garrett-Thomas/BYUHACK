@@ -177,6 +177,13 @@ describe('companyNameFrom', () => {
     expect(companyNameFrom(plain, 'fake-labs')).toBe('Fake Labs');
   });
 
+  it('strips the company tab name from the title', () => {
+    const d = new DOMParser().parseFromString('<title>(5) Fake Labs: Overview | LinkedIn</title><main></main>', 'text/html');
+    expect(companyNameFrom(d, 'fake-labs')).toBe('Fake Labs');
+    const people = new DOMParser().parseFromString('<title>Fake Labs: People | LinkedIn</title>', 'text/html');
+    expect(companyNameFrom(people, 'fake-labs')).toBe('Fake Labs');
+  });
+
   it('falls back to the given slug when there is no h1 or title', () => {
     const d = new DOMParser().parseFromString('<main></main>', 'text/html');
     expect(companyNameFrom(d, 'fake-labs')).toBe('fake-labs');

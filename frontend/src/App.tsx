@@ -28,7 +28,7 @@ export default function App() {
   const [generatedAt, setGeneratedAt] = useState<Date | null>(null);
   const [loaded, setLoaded] = useState(false);
 
-  const { collect, retry, ensureIdle, sync } = useCollector(setData);
+  const { retry, ensureIdle, sync } = useCollector(setData);
 
   useEffect(() => {
     let cancelled = false;
@@ -106,7 +106,6 @@ export default function App() {
         )}
         {current === 'job' && job && (
           <JobDetailScreen job={job} d={data[job.id]} prevScreen={prevScreen} profile={profile} go={go}
-            onCollect={() => collect(job, profile)}
             onRetry={(b: Branch) => retry(job, profile, b)}
             onFind={() => ensureIdle(job)} onSync={() => sync(job, profile)}
             onContact={(contactId, patch) => updateContact(job.id, contactId, patch)}

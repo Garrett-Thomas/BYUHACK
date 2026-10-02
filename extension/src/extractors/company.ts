@@ -34,6 +34,8 @@ export function companyNameFrom(doc: Document, fallback = ''): string {
   }
   const title = clean(doc.title)
     .replace(/\s*\|\s*LinkedIn\s*$/i, '')
-    .replace(/^\(\d+\+?\)\s*/, '');
+    .replace(/^\(\d+\+?\)\s*/, '')
+    // Company tabs are titled "Microsoft: Overview", "Microsoft: People", ...
+    .replace(/:\s*(Overview|About|Posts|Jobs|People|Life|Products|Insights|Events|Videos)\s*$/i, '');
   return clean(title) || fallback;
 }
