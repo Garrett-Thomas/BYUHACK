@@ -3,6 +3,7 @@ import type { Branch, Contact, Email, Job, JobData, Profile, Screen } from './ty
 import { DEFAULT_PROFILE } from './data/constants';
 import { loadJobs } from './lib/loadJobs';
 import { useCollector } from './hooks/useCollector';
+import { usePersistentState } from './hooks/usePersistentState';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import JobsScreen from './screens/JobsScreen';
@@ -10,18 +11,41 @@ import CompanyScreen from './screens/CompanyScreen';
 import JobDetailScreen from './screens/JobDetailScreen';
 import ProfileScreen from './screens/ProfileScreen';
 
+// Revivers for persisted state: anything malformed falls back to the default.
+const SCREENS: Screen[] = ['jobs', 'company', 'job', 'profile'];
+const asScreen = (v: unknown) => (SCREENS.includes(v as Screen) ? (v as Screen) : undefined);
+const asString = (v: unknown) => (typeof v === 'string' ? v : undefined);
+const asStrings = (v: unknown) => (Array.isArray(v) && v.every((x) => typeof x === 'string') ? (v as string[]) : undefined);
+const asProfile = (v: unknown): Profile | undefined => {
+  if (!v || typeof v !== 'object') return undefined;
+  const o = v as Record<string, unknown>;
+  const pick = (k: keyof Profile) => (typeof o[k] === 'string' ? (o[k] as string) : DEFAULT_PROFILE[k]);
+  return { name: pick('name'), school: pick('school'), highlight: pick('highlight'), resume: pick('resume') };
+};
+// Keep finished jobs (edited notes, statuses, found emails). Anything that was in flight when the
+// page unloaded can't finish, so clear its busy flag instead of leaving "Searching…" stuck forever.
+const asData = (v: unknown): Record<string, JobData> | undefined => {
+  if (!v || typeof v !== 'object') return undefined;
+  const out: Record<string, JobData> = {};
+  for (const [id, d] of Object.entries(v as Record<string, JobData>)) {
+    if (d?.status === 'done' && Array.isArray(d.contacts)) out[id] = { ...d, busy: { contacts: false, email: false } };
+  }
+  return out;
+};
+
 export default function App() {
-  const [screen, setScreen] = useState<Screen>('jobs');
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [prevScreen, setPrevScreen] = useState<Screen>('jobs');
-  const [query, setQuery] = useState('');
-  const [companyFilters, setCompanyFilters] = useState<string[]>([]);
-  const [locationFilters, setLocationFilters] = useState<string[]>([]);
-  const [termFilters, setTermFilters] = useState<string[]>([]);
-  const [companyJobs, setCompanyJobs] = useState<Job[]>([]);
-  const [data, setData] = useState<Record<string, JobData>>({});
-  const [profile, setProfile] = useState<Profile>({ ...DEFAULT_PROFILE });
-  const [showRepo, setShowRepo] = useState(true);
+  const [screen, setScreen] = usePersistentState<Screen>('screen', 'jobs', asScreen);
+  const [jobId, setJobId] = usePersistentState<string | null>('jobId', null, asString);
+  const [prevScreen, setPrevScreen] = usePersistentState<Screen>('prevScreen', 'jobs', asScreen);
+  const [query, setQuery] = usePersistentState('query', '', asString);
+  const [companyFilters, setCompanyFilters] = usePersistentState<string[]>('companyFilters', [], asStrings);
+  const [locationFilters, setLocationFilters] = usePersistentState<string[]>('locationFilters', [], asStrings);
+  const [termFilters, setTermFilters] = usePersistentState<string[]>('termFilters', [], asStrings);
+  const [companyJobs, setCompanyJobs] = usePersistentState<Job[]>('companyJobs', [],
+    (v) => (Array.isArray(v) ? (v as Job[]) : undefined));
+  const [data, setData] = usePersistentState<Record<string, JobData>>('jobData', {}, asData);
+  const [profile, setProfile] = usePersistentState<Profile>('profile', { ...DEFAULT_PROFILE }, asProfile);
+  const [showRepo, setShowRepo] = usePersistentState('showRepo', true, (v) => (typeof v === 'boolean' ? v : undefined));
 
   const [jobs, setJobs] = useState<Job[]>([]);
   const [repoCount, setRepoCount] = useState(4);
